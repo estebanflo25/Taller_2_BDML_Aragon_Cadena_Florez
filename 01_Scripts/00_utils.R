@@ -74,18 +74,27 @@ fun_preprocess_personas <- function(.db) {
                                    "Secundaria", "Media", "Superior")),
 
       # Años de educación a partir del nivel (P6210) y el último grado
-      # aprobado (P6210s1). En primaria, secundaria y media el grado ya es
-      # acumulado (1-5, 6-9, 10-13). En superior, el grado son los años de
-      # educación superior aprobados, que se suman a 11 años de bachillerato.
-      # El código 99 de P6210s1 (no sabe) se trata como faltante.
-      # PENDIENTE: confirmar esta lectura con table(P6210, P6210s1).
+      # aprobado (P6210s1). Verificado con table(P6210, P6210s1) en train:
+      #   - Primaria (3): grados 0-5, acumulados.
+      #   - Secundaria (4): grados 6-9, acumulados; el grado 0 (5.554 casos)
+      #     significa que aún no aprueba ninguno de este nivel => 5 años.
+      #   - Media (5): grados 10-13, acumulados.
+      #   - Superior (6): grados 0-15 = años de educación superior aprobados,
+      #     que se suman a 11 años de bachillerato.
+      # P6210s1 solo se pregunta a personas en edad de trabajar, así que los
+      # niños en primaria o secundaria tienen el grado en NA (unos 47.000).
+      # Para ellos se aproxima con la edad (entra a primero a los 6 años),
+      # acotado al rango del nivel. El código 99 (no sabe) se trata como NA.
       num_grado = if_else(P6210s1 == 99, NA_integer_, P6210s1),
       num_educ_years = case_when(
         cat_educ %in% c("Ninguno", "Preescolar") ~ 0,
-        cat_educ == "Primaria"   ~ coalesce(num_grado, 0L) + 0,
-        cat_educ == "Secundaria" ~ coalesce(num_grado, 5L) + 0,
-        cat_educ == "Media"      ~ coalesce(num_grado, 9L) + 0,
-        cat_educ == "Superior"   ~ 11 + coalesce(num_grado, 0L)),
+        cat_educ == "Primaria" & !is.na(num_grado)   ~ as.numeric(num_grado),
+        cat_educ == "Primaria"                       ~ pmin(pmax(P6040 - 6, 0), 5),
+        cat_educ == "Secundaria" & num_grado %in% 6:9 ~ as.numeric(num_grado),
+        cat_educ == "Secundaria" & num_grado %in% 0   ~ 5,
+        cat_educ == "Secundaria"                     ~ pmin(pmax(P6040 - 6, 5), 9),
+        cat_educ == "Media"                          ~ as.numeric(coalesce(num_grado, 9L)),
+        cat_educ == "Superior"                       ~ 11 + coalesce(num_grado, 0L)),
 
       # ------------------------------------------------------------------------
       # Bloque C. Salud
