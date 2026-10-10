@@ -10,6 +10,8 @@
 # Contenido (se irá completando):
 #   - fun_preprocess_personas(): recodificación de la base de personas.
 #   - fun_collapse_personas(): agregación de personas a nivel hogar.
+#   - fun_params_vivienda() y fun_preprocess_hogares(): limpieza de la base
+#     de hogares (vivienda, ubicación y variable objetivo).
 #   - Particiones de validación cruzada comunes a todos los modelos. (pendiente)
 #   - Umbral óptimo de clasificación por curva PR (Precision-Recall). (pendiente)
 #   - Guardado de envíos a Kaggle con el nombre y formato correctos.  (pendiente)
@@ -199,4 +201,113 @@ fun_collapse_personas <- function(.db) {
       cat_head_educ = factor(as.character(cat_head_educ),
                              levels = levels(cat_head_educ))
     )
+}
+
+
+# ==============================================================================
+# 3. PREPROCESAMIENTO DE HOGARES
+# ==============================================================================
+# El arriendo combina dos preguntas complementarias: P5140 (arriendo pagado, la
+# responden los arrendatarios) y P5130 (arriendo estimado, la responden los
+# demás). Cada hogar tiene exactamente una de las dos.
+#
+# Problemas detectados en train:
+#   - Códigos 98 (no sabe) y 99 (no informa): 9.671 hogares en P5130 y 750 en
+#     P5140. Los hogares que no saben tienen 30 % de pobreza vs. 17 % del resto.
+#   - Valores absurdamente bajos (< 10.000 pesos) y máximos de cientos de
+#     millones (errores de digitación).
+# Tratamiento:
+#   - 98, 99 y < 10.000 => se imputan con la mediana del mismo Dominio y la
+#     misma tenencia, y se marcan con bin_arriendo_imputado = 1.
+#   - Valores por encima del percentil 99,9 % => se recortan a ese percentil.
+# Las medianas y el percentil se calculan SOLO con train (fun_params_vivienda)
+# y se aplican igual a train y test (fun_preprocess_hogares).
+
+# Las categorías se escriben sin espacios ni tildes: algunos algoritmos
+# convierten los niveles de los factores en nombres de columnas.
+fun_clean_label <- function(x) str_replace_all(x, " ", "_")
+
+fun_params_vivienda <- function(.db_train) {
+  #' Calcular, solo con train, los parámetros para limpiar el arriendo
+  #'
+  #' @param .db_train tibble. train_hogares tal como lo guarda 01_load_raw.R.
+  #' @returns lista con el percentil de recorte, las medianas por Dominio y
+  #'   tenencia, la mediana global (respaldo) y los niveles de Dominio.
+
+  db <- .db_train |>
+    mutate(num_arriendo = coalesce(P5140, P5130),
+           num_arriendo = if_else(num_arriendo %in% c(98, 99) | num_arriendo < 10000,
+                                  NA_real_, num_arriendo))
+
+  cap <- unname(quantile(db$num_arriendo, 0.999, na.rm = TRUE))
+
+  db <- db |>
+    filter(!is.na(num_arriendo)) |>
+    mutate(num_arriendo = pmin(num_arriendo, cap))
+
+  list(
+    cap_arriendo   = cap,
+    mediana_global = median(db$num_arriendo),
+    medianas       = db |>
+      group_by(Dominio, P5090) |>
+      summarize(num_arriendo_mediana = median(num_arriendo), .groups = "drop"),
+    niveles_dominio = sort(unique(fun_clean_label(.db_train$Dominio)))
+  )
+}
+
+fun_preprocess_hogares <- function(.db, .params) {
+  #' Limpiar la base de hogares
+  #'
+  #' @param .db tibble. train_hogares o test_hogares de 01_load_raw.R.
+  #' @param .params lista de fun_params_vivienda(), calculada con train.
+  #' @returns tibble con una fila por hogar. Incluye Pobre (factor con "Yes"
+  #'   como primer nivel) solo si la base la trae (train).
+
+  db <- .db |>
+    mutate(num_arriendo_raw = coalesce(P5140, P5130),
+           bin_arriendo_imputado = as.integer(is.na(num_arriendo_raw) |
+                                                num_arriendo_raw %in% c(98, 99) |
+                                                num_arriendo_raw < 10000)) |>
+    left_join(.params$medianas, by = c("Dominio", "P5090")) |>
+    mutate(
+      # Arriendo (pagado o estimado), limpio
+      num_arriendo = if_else(bin_arriendo_imputado == 1,
+                             coalesce(num_arriendo_mediana, .params$mediana_global),
+                             pmin(num_arriendo_raw, .params$cap_arriendo)),
+      num_arriendo_pc     = num_arriendo / Npersug,
+      num_log_arriendo_pc = log(num_arriendo_pc),
+
+      # Vivienda. P5000 > 20 (4 hogares, incluido un código 98) se reemplaza
+      # por los cuartos para dormir, que son un piso razonable.
+      num_cuartos         = if_else(P5000 > 20, P5010, P5000),
+      num_cuartos_dormir  = P5010,
+      num_personas_cuarto = Nper / P5010,  # hacinamiento
+      cat_tenencia = factor(P5090, levels = 1:6,
+                            labels = c("propia_pagada", "propia_pagando", "arriendo",
+                                       "usufructo", "ocupante", "otra")),
+
+      # Tamaño del hogar y línea de pobreza
+      num_personas    = Nper,
+      num_personas_ug = Npersug,
+      num_lp          = Lp,
+      # Ingreso mensual que necesita la unidad de gasto para no ser pobre
+      num_ingreso_requerido = Lp * Npersug,
+
+      # Ubicación. Clase: 1 cabecera, 2 resto => binaria.
+      bin_rural   = as.integer(Clase == 2),
+      cat_dominio = factor(fun_clean_label(Dominio), levels = .params$niveles_dominio)
+    )
+
+  # Variable objetivo (solo train). "Yes" primero: caret toma el primer nivel
+  # como la clase positiva.
+  if ("Pobre" %in% names(db)) {
+    db <- db |> mutate(Pobre = factor(Pobre, levels = c(1, 0), labels = c("Yes", "No")))
+  }
+
+  db |>
+    select(id, any_of("Pobre"),
+           num_arriendo, num_arriendo_pc, num_log_arriendo_pc, bin_arriendo_imputado,
+           num_cuartos, num_cuartos_dormir, num_personas_cuarto, cat_tenencia,
+           num_personas, num_personas_ug, num_lp, num_ingreso_requerido,
+           bin_rural, cat_dominio)
 }
