@@ -9,7 +9,7 @@
 #
 # Contenido (se irá completando):
 #   - fun_preprocess_personas(): recodificación de la base de personas.
-#   - Agregación a nivel hogar.                                   (pendiente)
+#   - fun_collapse_personas(): agregación de personas a nivel hogar.
 #   - Particiones de validación cruzada comunes a todos los modelos. (pendiente)
 #   - Umbral óptimo de clasificación por curva PR (Precision-Recall). (pendiente)
 #   - Guardado de envíos a Kaggle con el nombre y formato correctos.  (pendiente)
@@ -121,4 +121,82 @@ fun_preprocess_personas <- function(.db) {
       bin_incapacitado = as.integer(P6240 %in% 5)
     ) |>
     select(-num_grado)  # variable auxiliar, ya incorporada en num_educ_years
+}
+
+
+# ==============================================================================
+# 2. AGREGACIÓN DE PERSONAS A NIVEL HOGAR
+# ==============================================================================
+# Solo se cuentan los miembros de la unidad de gasto (bin_ug == 1), porque la
+# pobreza se mide con el ingreso per cápita de la unidad de gasto.
+#
+# Prefijos nuevos:
+#   prop_  proporción entre 0 y 1
+# Cuando el denominador de una tasa es 0, la tasa no está definida: se fija en
+# 0 y se agrega una variable indicadora (bin_sin_...) para que el modelo pueda
+# distinguir ese 0 de un 0 real, como sugería la clase.
+
+fun_collapse_personas <- function(.db) {
+  #' Agregar la base de personas a nivel hogar
+  #'
+  #' @param .db tibble. Base de personas procesada por fun_preprocess_personas().
+  #' @returns tibble con una fila por hogar (id). Incluye num_heads y
+  #'   num_personas_ug, que el script usa para verificaciones y luego descarta.
+
+  .db |>
+    filter(bin_ug == 1) |>
+    group_by(id) |>
+    summarize(
+      # Auxiliares para verificación
+      num_heads       = sum(bin_head),
+      num_personas_ug = n(),
+
+      # Bloque B. Demografía
+      # bin_head vale 1 solo para el jefe, así que bin_head * x recupera el
+      # valor de x del jefe y max() lo extrae.
+      bin_head_male     = max(bin_head * bin_male),
+      num_head_age      = max(bin_head * num_age),
+      bin_spouse        = max(bin_spouse),  # el jefe tiene cónyuge en el hogar
+      num_minors        = sum(bin_minor),
+      num_old           = sum(bin_old),
+      num_edad_trabajar = sum(bin_edad_trabajar),
+
+      # Bloque C. Educación
+      num_head_educ        = max(bin_head * num_educ_years),
+      cat_head_educ        = first(cat_educ[bin_head == 1]),
+      num_max_educ         = max(num_educ_years),
+      num_mean_educ_adults = mean(num_educ_years[num_age >= 18]),
+
+      # Bloque C. Salud
+      prop_subsidiado  = mean(bin_subsidiado),
+      prop_no_afiliado = 1 - mean(bin_afiliado),
+
+      # Bloque D. Situación laboral
+      num_pet              = sum(bin_pet),
+      num_ocupados         = sum(bin_ocupado),
+      num_desocupados      = sum(bin_desocupado),
+      bin_head_ocupado     = max(bin_head * bin_ocupado),
+      num_estudiantes      = sum(bin_estudiante),
+      bin_any_incapacitado = max(bin_incapacitado),
+      .groups = "drop"
+    ) |>
+    mutate(
+      # Tasa de dependencia: (menores + mayores) por persona de 18 a 65 años.
+      bin_sin_edad_trabajar = as.integer(num_edad_trabajar == 0),
+      prop_dependencia = if_else(num_edad_trabajar > 0,
+                                 (num_minors + num_old) / num_edad_trabajar, 0),
+      # Tasa de ocupación: ocupados por persona en edad de trabajar.
+      bin_sin_pet       = as.integer(num_pet == 0),
+      prop_ocupados_pet = if_else(num_pet > 0, num_ocupados / num_pet, 0),
+      # Ocupados por persona a mantener en la unidad de gasto.
+      prop_ocupados_ug   = num_ocupados / num_personas_ug,
+      bin_any_desocupado = as.integer(num_desocupados > 0),
+      # Hogares sin adultos: se usa la educación del jefe.
+      num_mean_educ_adults = if_else(is.nan(num_mean_educ_adults),
+                                     num_head_educ, num_mean_educ_adults),
+      # Se pasa a factor NO ordenado: en un modelo, un factor ordenado genera
+      # contrastes polinomiales (.L, .Q, .C) difíciles de interpretar.
+      cat_head_educ = factor(as.character(cat_head_educ),
+                             levels = levels(cat_head_educ))
+    )
 }
