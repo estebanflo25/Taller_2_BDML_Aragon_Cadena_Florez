@@ -12,9 +12,12 @@
 #   - fun_collapse_personas(): agregación de personas a nivel hogar.
 #   - fun_params_vivienda() y fun_preprocess_hogares(): limpieza de la base
 #     de hogares (vivienda, ubicación y variable objetivo).
-#   - Particiones de validación cruzada comunes a todos los modelos. (pendiente)
-#   - Umbral óptimo de clasificación por curva PR (Precision-Recall). (pendiente)
-#   - Guardado de envíos a Kaggle con el nombre y formato correctos.  (pendiente)
+#   - fun_folds() y fun_train_control(): validación cruzada común a todos los
+#     modelos (misma semilla, mismos folds, mismas métricas).
+#   - fun_oof(), fun_f1_curve() y fun_best_threshold(): umbral óptimo de
+#     clasificación a partir de las predicciones out-of-fold.
+#   - fun_num_label() y fun_save_submission(): envíos a Kaggle con el nombre y
+#     el formato correctos.
 # ==============================================================================
 
 if (!require(pacman)) install.packages("pacman")
@@ -310,4 +313,120 @@ fun_preprocess_hogares <- function(.db, .params) {
            num_cuartos, num_cuartos_dormir, num_personas_cuarto, cat_tenencia,
            num_personas, num_personas_ug, num_lp, num_ingreso_requerido,
            bin_rural, cat_dominio)
+}
+
+
+# ==============================================================================
+# 4. MODELADO: VALIDACIÓN CRUZADA, UMBRAL Y ENVÍOS
+# ==============================================================================
+# Todos los modelos usan estas funciones. Así la comparación entre algoritmos
+# es justa: mismas particiones, mismas métricas y misma regla de umbral.
+
+pacman::p_load(caret,      # Entrenamiento y validación cruzada.
+               MLmetrics)  # Requerido por caret::prSummary() (precision, recall, F1).
+
+# ------------------------------------------------------------------------------
+# 4.1 Validación cruzada
+# ------------------------------------------------------------------------------
+fun_folds <- function(.y, .k = 5, .seed = 2026) {
+  #' Particiones estratificadas, idénticas para todos los modelos
+  #'
+  #' @param .y factor. Variable objetivo (Pobre) de la base de entrenamiento.
+  #' @returns lista de índices de entrenamiento por fold (formato de caret).
+  set.seed(.seed)
+  createFolds(.y, k = .k, returnTrain = TRUE)
+}
+
+# Accuracy y Kappa (defaultSummary) + AUC-PR, precision, recall y F
+# (prSummary). Como en la clase del 26 de septiembre.
+fun_multi_stats <- function(data, lev = NULL, model = NULL) {
+  c(defaultSummary(data, lev, model), prSummary(data, lev, model))
+}
+
+fun_train_control <- function(.folds) {
+  #' Control de entrenamiento común a todos los modelos
+  #'
+  #' @param .folds lista de fun_folds().
+  #' @returns objeto trainControl de caret. Guarda las predicciones
+  #'   out-of-fold de la mejor combinación de hiperparámetros.
+  trainControl(method = "cv",
+               number = length(.folds),
+               index = .folds,
+               classProbs = TRUE,
+               summaryFunction = fun_multi_stats,
+               savePredictions = "final")
+}
+
+# ------------------------------------------------------------------------------
+# 4.2 Umbral óptimo
+# ------------------------------------------------------------------------------
+# El umbral es un hiperparámetro más: cada modelo elige el suyo, pero todos con
+# la misma regla, maximizando el F1 sobre sus predicciones out-of-fold (hogares
+# que no participaron en el ajuste de su partición).
+
+fun_oof <- function(.model) {
+  #' Predicciones out-of-fold de la mejor combinación de hiperparámetros
+  #'
+  #' @param .model objeto train de caret.
+  #' @returns tibble con rowIndex, obs (clase observada) y prob (P(Yes)).
+  .model$pred |>
+    inner_join(.model$bestTune, by = names(.model$bestTune)) |>
+    as_tibble() |>
+    select(rowIndex, obs, prob = Yes)
+}
+
+fun_f1_curve <- function(.oof, .grid = seq(0.01, 0.99, by = 0.01)) {
+  #' Precision, recall y F1 para cada umbral de la grilla
+  #'
+  #' @param .oof tibble de fun_oof().
+  #' @returns tibble con threshold, precision, recall y F1.
+  y <- .oof$obs == "Yes"
+  map_dfr(.grid, \(u) {
+    pred <- .oof$prob >= u
+    tp <- sum(pred & y); fp <- sum(pred & !y); fn <- sum(!pred & y)
+    tibble(threshold = u,
+           precision = if (tp + fp > 0) tp / (tp + fp) else NA_real_,
+           recall    = tp / (tp + fn))
+  }) |>
+    mutate(F1 = 2 * precision * recall / (precision + recall))
+}
+
+fun_best_threshold <- function(.curve) {
+  #' Fila de la curva con el mayor F1
+  .curve |> slice_max(F1, n = 1, with_ties = FALSE)
+}
+
+# ------------------------------------------------------------------------------
+# 4.3 Envíos a Kaggle
+# ------------------------------------------------------------------------------
+fun_num_label <- function(.x) {
+  #' Número legible para nombres de archivo: 0.001 -> "0_001"
+  gsub(".", "_", trimws(formatC(.x, format = "fg", digits = 4)), fixed = TRUE)
+}
+
+fun_save_submission <- function(.model, .db_test, .threshold, .name, .dir_root = here()) {
+  #' Predecir sobre test y guardar el archivo de envío a Kaggle
+  #'
+  #' @param .model objeto train de caret.
+  #' @param .db_test tibble. Base de test con la columna id.
+  #' @param .threshold numérico. Umbral de clasificación.
+  #' @param .name texto. Nombre del archivo sin extensión: algoritmo e
+  #'   hiperparámetros, por ejemplo "EN_lambda_0_001_alpha_0_15".
+  #' @param .dir_root ruta base. here() en la estructura final.
+  #' @returns invisible: el tibble enviado (id, pobre).
+  prob <- predict(.model, newdata = .db_test, type = "prob")[["Yes"]]
+  submission <- tibble(id = .db_test$id, pobre = as.integer(prob >= .threshold))
+
+  # Validación contra el formato de Kaggle antes de gastar un cupo diario.
+  sample <- read.csv(here("02_Data", "Raw", "sample_submission.csv"))
+  stopifnot(nrow(submission) == nrow(sample),
+            setequal(submission$id, sample$id),
+            !anyNA(submission$pobre))
+
+  path <- file.path(.dir_root, "03_Output", "Submissions", paste0(.name, ".csv"))
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  write.csv(submission, path, row.names = FALSE)
+  message("Envío guardado: ", path, " | proporción de pobres predicha: ",
+          round(mean(submission$pobre), 3))
+  invisible(submission)
 }
