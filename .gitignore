@@ -3,3 +3,5 @@
 .RData
 .Ruserdata
 .DS_Store
+02_Data/Raw/*.csv
+!02_Data/Raw/sample_submission.csv
