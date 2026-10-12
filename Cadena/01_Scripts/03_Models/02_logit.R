@@ -36,8 +36,12 @@ db_test  <- readRDS(here("02_Data", "Processed", "db_test.rds"))
 #   - bin_head_ocupado: queda determinada por cat_head_posicion (que incluye
 #     la categoría "no_ocupado").
 #   - bin_sin_pet: vale 1 en un solo hogar; en algunos folds es constante.
+#   - cat_dominio: queda contenida en cat_geo, que la detalla por departamento.
+# Nota: cat_head_posicion y cat_head_oficio comparten la categoría
+# "no_ocupado", así que glm descarta automáticamente un coeficiente redundante.
+# No afecta las predicciones.
 vars_excluir <- c("id", "num_arriendo", "num_arriendo_pc", "num_edad_trabajar",
-                  "bin_rural", "bin_head_ocupado", "bin_sin_pet")
+                  "bin_rural", "bin_head_ocupado", "bin_sin_pet", "cat_dominio")
 db_model <- db_train |> select(-all_of(vars_excluir))
 
 

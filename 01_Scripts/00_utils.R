@@ -152,11 +152,30 @@ fun_preprocess_personas <- function(.db) {
       # 4: 6-10, ..., 9: 101 o más). El DANE define como informal a quien
       # trabaja en una empresa de 5 personas o menos.
       bin_empresa_mas5 = as.integer(P6870 %in% 4:9),
-      # Horas y antigüedad (meses): 0 para quien no está ocupado.
-      num_horas      = if_else(Oc %in% 1, coalesce(as.numeric(P6800), 0), 0),
+      # Oficio: código de ocupación de 2 dígitos (CNO-70). Se agrupa por su
+      # primer dígito en los grandes grupos ocupacionales. NA = no ocupado.
+      cat_oficio = factor(
+        case_when(Oficio %in% 1:19  ~ "profesional_tecnico",
+                  Oficio %in% 20:29 ~ "directivo",
+                  Oficio %in% 30:39 ~ "administrativo",
+                  Oficio %in% 40:49 ~ "comerciante_vendedor",
+                  Oficio %in% 50:59 ~ "servicios",
+                  Oficio %in% 60:69 ~ "agropecuario",
+                  Oficio %in% 70:99 ~ "operario",
+                  TRUE              ~ "no_ocupado"),
+        levels = c("no_ocupado", "profesional_tecnico", "directivo", "administrativo",
+                   "comerciante_vendedor", "servicios", "agropecuario", "operario")),
+      # Horas semanales (primer trabajo P6800 + segundo trabajo P7045) y
+      # antigüedad en meses: 0 para quien no está ocupado.
+      num_horas      = if_else(Oc %in% 1,
+                               coalesce(as.numeric(P6800), 0) + coalesce(as.numeric(P7045), 0), 0),
       num_antiguedad = if_else(Oc %in% 1, coalesce(as.numeric(P6426), 0), 0),
       bin_segundo_trabajo = as.integer(P7040 %in% 1),
       bin_subempleo       = as.integer(P7090 %in% 1),  # quiere trabajar más horas
+      bin_busca_cambiar   = as.integer(P7150 %in% 1),  # buscó cambiar de trabajo
+      # Desocupados (P7422) e inactivos (P7472): ¿recibieron ingresos por
+      # trabajo el mes pasado?
+      bin_ingreso_trabajo_no_ocup = as.integer(P7422 %in% 1 | P7472 %in% 1),
 
       # ------------------------------------------------------------------------
       # Bloque F. Beneficios laborales (solo se pregunta a los asalariados)
@@ -171,6 +190,10 @@ fun_preprocess_personas <- function(.db) {
       bin_prima_navidad       = as.integer(P6630s2 %in% 1),
       bin_prima_vacaciones    = as.integer(P6630s3 %in% 1),
       bin_horas_extras        = as.integer(P6510 %in% 1),
+      bin_primas              = as.integer(P6545 %in% 1),    # técnica, antigüedad, etc.
+      bin_bonificacion        = as.integer(P6580 %in% 1),    # bonificación mensual
+      bin_viaticos            = as.integer(P6630s4 %in% 1),  # viáticos permanentes
+      bin_bonificacion_anual  = as.integer(P6630s6 %in% 1),
       # Pago en especie: alimentos, vivienda, transporte u otros bienes.
       bin_pago_especie = as.integer(P6590 %in% 1 | P6600 %in% 1 |
                                       P6610 %in% 1 | P6620 %in% 1),
@@ -265,6 +288,9 @@ fun_collapse_personas <- function(.db) {
       num_head_antiguedad   = max(bin_head * num_antiguedad),
       bin_any_segundo_trabajo = max(bin_segundo_trabajo),
       num_subempleados      = sum(bin_subempleo),
+      bin_any_busca_cambiar = max(bin_busca_cambiar),
+      bin_any_ingreso_trabajo_no_ocup = max(bin_ingreso_trabajo_no_ocup),
+      cat_head_oficio       = first(cat_oficio[bin_head == 1]),
 
       # Bloque F. Beneficios laborales
       num_aux_transporte         = sum(bin_aux_transporte),
@@ -276,6 +302,10 @@ fun_collapse_personas <- function(.db) {
       bin_any_subsidio_educativo = max(bin_subsidio_educativo),
       bin_any_horas_extras       = max(bin_horas_extras),
       bin_any_pago_especie       = max(bin_pago_especie),
+      bin_any_primas             = max(bin_primas),
+      bin_any_bonificacion       = max(bin_bonificacion),
+      bin_any_viaticos           = max(bin_viaticos),
+      bin_any_bonificacion_anual = max(bin_bonificacion_anual),
 
       # Bloque G. Otros ingresos y transferencias
       bin_any_arriendos_pensiones = max(bin_arriendos_pensiones),
@@ -342,12 +372,24 @@ fun_collapse_personas <- function(.db) {
 # convierten los niveles de los factores en nombres de columnas.
 fun_clean_label <- function(x) str_replace_all(x, " ", "_")
 
+# Geografía detallada: Dominio separa las 24 ciudades principales, pero mete en
+# "RESTO URBANO" y "RURAL" a todos los demás municipios del país. Para esos dos
+# grupos se agrega el departamento (Depto), de modo que, por ejemplo, la zona
+# rural de Antioquia (RURAL_05) se distingue de la de La Guajira (RURAL_44).
+fun_geo <- function(.dominio, .depto) {
+  dominio <- fun_clean_label(.dominio)
+  if_else(dominio %in% c("RESTO_URBANO", "RURAL"),
+          paste0(dominio, "_", sprintf("%02d", as.integer(.depto))),
+          dominio)
+}
+
 fun_params_vivienda <- function(.db_train) {
   #' Calcular, solo con train, los parámetros para limpiar el arriendo
   #'
   #' @param .db_train tibble. train_hogares tal como lo guarda 01_load_raw.R.
   #' @returns lista con el percentil de recorte, las medianas por Dominio y
-  #'   tenencia, la mediana global (respaldo) y los niveles de Dominio.
+  #'   tenencia, la mediana global (respaldo) y los niveles de Dominio y de
+  #'   la geografía detallada (fun_geo).
 
   db <- .db_train |>
     mutate(num_arriendo = coalesce(P5140, P5130),
@@ -366,7 +408,8 @@ fun_params_vivienda <- function(.db_train) {
     medianas       = db |>
       group_by(Dominio, P5090) |>
       summarize(num_arriendo_mediana = median(num_arriendo), .groups = "drop"),
-    niveles_dominio = sort(unique(fun_clean_label(.db_train$Dominio)))
+    niveles_dominio = sort(unique(fun_clean_label(.db_train$Dominio))),
+    niveles_geo     = sort(unique(fun_geo(.db_train$Dominio, .db_train$Depto)))
   )
 }
 
@@ -410,7 +453,8 @@ fun_preprocess_hogares <- function(.db, .params) {
 
       # Ubicación. Clase: 1 cabecera, 2 resto => binaria.
       bin_rural   = as.integer(Clase == 2),
-      cat_dominio = factor(fun_clean_label(Dominio), levels = .params$niveles_dominio)
+      cat_dominio = factor(fun_clean_label(Dominio), levels = .params$niveles_dominio),
+      cat_geo     = factor(fun_geo(Dominio, Depto), levels = .params$niveles_geo)
     )
 
   # Variable objetivo (solo train). "Yes" primero: caret toma el primer nivel
@@ -424,7 +468,7 @@ fun_preprocess_hogares <- function(.db, .params) {
            num_arriendo, num_arriendo_pc, num_log_arriendo_pc, bin_arriendo_imputado,
            num_cuartos, num_cuartos_dormir, num_personas_cuarto, cat_tenencia,
            num_personas, num_personas_ug, num_lp, num_ingreso_requerido,
-           bin_rural, cat_dominio)
+           bin_rural, cat_dominio, cat_geo)
 }
 
 
