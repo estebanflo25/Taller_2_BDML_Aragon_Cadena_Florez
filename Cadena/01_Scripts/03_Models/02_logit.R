@@ -33,7 +33,11 @@ db_test  <- readRDS(here("02_Data", "Processed", "db_test.rds"))
 #   - num_edad_trabajar: menores + mayores + edad de trabajar = personas de la
 #     unidad de gasto, así que es una combinación lineal exacta de otras.
 #   - bin_rural: queda determinada por cat_dominio (que incluye "RURAL").
-vars_excluir <- c("id", "num_arriendo", "num_arriendo_pc", "num_edad_trabajar", "bin_rural")
+#   - bin_head_ocupado: queda determinada por cat_head_posicion (que incluye
+#     la categoría "no_ocupado").
+#   - bin_sin_pet: vale 1 en un solo hogar; en algunos folds es constante.
+vars_excluir <- c("id", "num_arriendo", "num_arriendo_pc", "num_edad_trabajar",
+                  "bin_rural", "bin_head_ocupado", "bin_sin_pet")
 db_model <- db_train |> select(-all_of(vars_excluir))
 
 
