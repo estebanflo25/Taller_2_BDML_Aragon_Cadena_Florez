@@ -123,7 +123,72 @@ fun_preprocess_personas <- function(.db) {
       # trabajo, 3 estudiando, 4 oficios del hogar, 5 incapacitado, 6 otra).
       bin_estudiante  = as.integer(P6240 %in% 3),
       bin_hogar       = as.integer(P6240 %in% 4),
-      bin_incapacitado = as.integer(P6240 %in% 5)
+      bin_incapacitado = as.integer(P6240 %in% 5),
+
+      # ------------------------------------------------------------------------
+      # Bloque E. Calidad del empleo (solo se pregunta a los ocupados)
+      # ------------------------------------------------------------------------
+      # P6920: ¿cotiza a pensión? (1 sí, 2 no, 3 ya es pensionado). Cotizar es
+      # el mejor indicador de formalidad disponible.
+      bin_cotiza_pension = as.integer(P6920 %in% 1),
+      bin_pensionado     = as.integer(P6920 %in% 3),
+      # P6430: posición ocupacional. 1 empleado particular, 2 empleado del
+      # gobierno, 3 empleado doméstico, 4 cuenta propia, 5 patrón, 6 familiar
+      # sin remuneración, 7 sin remuneración en otros hogares, 8 jornalero,
+      # 9 otro. NA = no está ocupado.
+      cat_posicion = factor(
+        case_when(P6430 %in% 1   ~ "privado",
+                  P6430 %in% 2   ~ "gobierno",
+                  P6430 %in% 3   ~ "domestico",
+                  P6430 %in% 4   ~ "cuenta_propia",
+                  P6430 %in% 5   ~ "patron",
+                  P6430 %in% 6:7 ~ "sin_remuneracion",
+                  P6430 %in% 8   ~ "jornalero",
+                  P6430 %in% 9   ~ "otro",
+                  TRUE           ~ "no_ocupado"),
+        levels = c("no_ocupado", "privado", "gobierno", "domestico", "cuenta_propia",
+                   "patron", "sin_remuneracion", "jornalero", "otro")),
+      # P6870: tamaño de la empresa (1 trabaja solo, 2: 2-3 personas, 3: 4-5,
+      # 4: 6-10, ..., 9: 101 o más). El DANE define como informal a quien
+      # trabaja en una empresa de 5 personas o menos.
+      bin_empresa_mas5 = as.integer(P6870 %in% 4:9),
+      # Horas y antigüedad (meses): 0 para quien no está ocupado.
+      num_horas      = if_else(Oc %in% 1, coalesce(as.numeric(P6800), 0), 0),
+      num_antiguedad = if_else(Oc %in% 1, coalesce(as.numeric(P6426), 0), 0),
+      bin_segundo_trabajo = as.integer(P7040 %in% 1),
+      bin_subempleo       = as.integer(P7090 %in% 1),  # quiere trabajar más horas
+
+      # ------------------------------------------------------------------------
+      # Bloque F. Beneficios laborales (solo se pregunta a los asalariados)
+      # ------------------------------------------------------------------------
+      # El auxilio de transporte solo lo reciben por ley quienes ganan hasta 2
+      # salarios mínimos; las primas, quienes tienen contrato formal.
+      bin_aux_transporte      = as.integer(P6585s2 %in% 1),
+      bin_subsidio_alimentos  = as.integer(P6585s1 %in% 1),
+      bin_subsidio_familiar   = as.integer(P6585s3 %in% 1),
+      bin_subsidio_educativo  = as.integer(P6585s4 %in% 1),
+      bin_prima_servicios     = as.integer(P6630s1 %in% 1),
+      bin_prima_navidad       = as.integer(P6630s2 %in% 1),
+      bin_prima_vacaciones    = as.integer(P6630s3 %in% 1),
+      bin_horas_extras        = as.integer(P6510 %in% 1),
+      # Pago en especie: alimentos, vivienda, transporte u otros bienes.
+      bin_pago_especie = as.integer(P6590 %in% 1 | P6600 %in% 1 |
+                                      P6610 %in% 1 | P6620 %in% 1),
+
+      # ------------------------------------------------------------------------
+      # Bloque G. Otros ingresos y transferencias (personas de 10 años o más)
+      # ------------------------------------------------------------------------
+      # Solo se observa si se recibió; los montos no están en test.
+      bin_arriendos_pensiones = as.integer(P7495   %in% 1),
+      bin_pension             = as.integer(P7500s2 %in% 1),
+      bin_pension_alimenticia = as.integer(P7500s3 %in% 1),
+      bin_otros_ingresos      = as.integer(P7505   %in% 1),
+      bin_ayuda_hogares_pais  = as.integer(P7510s1 %in% 1),
+      bin_remesas_exterior    = as.integer(P7510s2 %in% 1),
+      bin_ayuda_instituciones = as.integer(P7510s3 %in% 1),
+      bin_intereses           = as.integer(P7510s5 %in% 1),
+      bin_cesantias           = as.integer(P7510s6 %in% 1),
+      bin_otras_fuentes       = as.integer(P7510s7 %in% 1)
     ) |>
     select(-num_grado)  # variable auxiliar, ya incorporada en num_educ_years
 }
@@ -183,6 +248,46 @@ fun_collapse_personas <- function(.db) {
       bin_head_ocupado     = max(bin_head * bin_ocupado),
       num_estudiantes      = sum(bin_estudiante),
       bin_any_incapacitado = max(bin_incapacitado),
+
+      # Bloque E. Calidad del empleo
+      num_cotizantes        = sum(bin_cotiza_pension),
+      bin_head_cotiza       = max(bin_head * bin_cotiza_pension),
+      num_pensionados       = sum(bin_pensionado),
+      cat_head_posicion     = first(cat_posicion[bin_head == 1]),
+      num_cuenta_propia     = sum(cat_posicion == "cuenta_propia"),
+      num_empresa_mas5      = sum(bin_empresa_mas5),
+      bin_any_patron        = as.integer(any(cat_posicion == "patron")),
+      bin_any_gobierno      = as.integer(any(cat_posicion == "gobierno")),
+      bin_any_domestico     = as.integer(any(cat_posicion == "domestico")),
+      bin_any_jornalero     = as.integer(any(cat_posicion == "jornalero")),
+      bin_any_sin_remuneracion = as.integer(any(cat_posicion == "sin_remuneracion")),
+      num_horas_total       = sum(num_horas),
+      num_head_antiguedad   = max(bin_head * num_antiguedad),
+      bin_any_segundo_trabajo = max(bin_segundo_trabajo),
+      num_subempleados      = sum(bin_subempleo),
+
+      # Bloque F. Beneficios laborales
+      num_aux_transporte         = sum(bin_aux_transporte),
+      bin_any_prima_servicios    = max(bin_prima_servicios),
+      bin_any_prima_navidad      = max(bin_prima_navidad),
+      bin_any_prima_vacaciones   = max(bin_prima_vacaciones),
+      bin_any_subsidio_alimentos = max(bin_subsidio_alimentos),
+      bin_any_subsidio_familiar  = max(bin_subsidio_familiar),
+      bin_any_subsidio_educativo = max(bin_subsidio_educativo),
+      bin_any_horas_extras       = max(bin_horas_extras),
+      bin_any_pago_especie       = max(bin_pago_especie),
+
+      # Bloque G. Otros ingresos y transferencias
+      bin_any_arriendos_pensiones = max(bin_arriendos_pensiones),
+      bin_any_pension             = max(bin_pension),
+      bin_any_pension_alimenticia = max(bin_pension_alimenticia),
+      bin_any_otros_ingresos      = max(bin_otros_ingresos),
+      bin_any_ayuda_hogares_pais  = max(bin_ayuda_hogares_pais),
+      bin_any_remesas_exterior    = max(bin_remesas_exterior),
+      bin_any_ayuda_instituciones = max(bin_ayuda_instituciones),
+      bin_any_intereses           = max(bin_intereses),
+      bin_any_cesantias           = max(bin_cesantias),
+      bin_any_otras_fuentes       = max(bin_otras_fuentes),
       .groups = "drop"
     ) |>
     mutate(
@@ -196,6 +301,13 @@ fun_collapse_personas <- function(.db) {
       # Ocupados por persona a mantener en la unidad de gasto.
       prop_ocupados_ug   = num_ocupados / num_personas_ug,
       bin_any_desocupado = as.integer(num_desocupados > 0),
+      # Composición del empleo: proporciones sobre los ocupados del hogar.
+      bin_sin_ocupados         = as.integer(num_ocupados == 0),
+      prop_cotizantes_ocup     = if_else(num_ocupados > 0, num_cotizantes / num_ocupados, 0),
+      prop_cuenta_propia_ocup  = if_else(num_ocupados > 0, num_cuenta_propia / num_ocupados, 0),
+      prop_empresa_mas5_ocup   = if_else(num_ocupados > 0, num_empresa_mas5 / num_ocupados, 0),
+      # Horas trabajadas por persona a mantener.
+      num_horas_pc = num_horas_total / num_personas_ug,
       # Hogares sin adultos: se usa la educación del jefe.
       num_mean_educ_adults = if_else(is.nan(num_mean_educ_adults),
                                      num_head_educ, num_mean_educ_adults),
