@@ -18,6 +18,8 @@
 #     clasificación a partir de las predicciones out-of-fold.
 #   - fun_num_label() y fun_save_submission(): envíos a Kaggle con el nombre y
 #     el formato correctos.
+#   - theme_taller(), fun_save_fig() y fun_save_tab(): formato común de figuras
+#     (PDF 16:9) y tablas (LaTeX, booktabs) para los slides.
 # ==============================================================================
 
 if (!require(pacman)) install.packages("pacman")
@@ -585,4 +587,76 @@ fun_save_submission <- function(.model, .db_test, .threshold, .name, .dir_root =
   message("Envío guardado: ", path, " | proporción de pobres predicha: ",
           round(mean(submission$pobre), 3))
   invisible(submission)
+}
+
+
+# ==============================================================================
+# 5. FORMATO DE FIGURAS Y TABLAS
+# ==============================================================================
+# Formato común para que las figuras y tablas de todo el equipo se vean iguales
+# en los slides (Beamer 16:9). Textos en español y decimales con punto.
+
+pacman::p_load(scales,      # Formato de números y porcentajes en los ejes.
+               kableExtra)  # Tablas en LaTeX.
+
+# Colores fijos para la variable objetivo (paleta Okabe-Ito, apta para
+# daltonismo). Se usan en todas las figuras que distinguen pobres y no pobres.
+pal_pobreza <- c("Pobre" = "#D55E00", "No pobre" = "#0072B2")
+
+# Tamaño de las figuras en pulgadas: proporción 16:9, pensado para ocupar el
+# ancho de una diapositiva de Beamer con aspectratio=169.
+fig_width  <- 8
+fig_height <- 4.5
+
+theme_taller <- function(base_size = 12) {
+  #' Tema gráfico común para las figuras del taller
+  theme_minimal(base_size = base_size) +
+    theme(plot.title          = element_text(face = "bold"),
+          plot.title.position = "plot",
+          plot.subtitle       = element_text(color = "grey30"),
+          plot.caption        = element_text(color = "grey40", size = rel(0.8), hjust = 0),
+          plot.caption.position = "plot",
+          legend.position     = "bottom",
+          legend.title        = element_blank(),
+          panel.grid.minor    = element_blank())
+}
+
+fun_save_fig <- function(.plot, .name, .dir_root = here(),
+                         .width = fig_width, .height = fig_height) {
+  #' Guardar una figura en PDF (vectorial) en 03_Output/Figures
+  #'
+  #' @param .plot objeto ggplot.
+  #' @param .name texto. Nombre del archivo sin extensión (por ejemplo
+  #'   "fig_desbalance").
+  #' @param .dir_root ruta base. here() en la estructura final.
+  #' @returns invisible: la ruta del archivo.
+  path <- file.path(.dir_root, "03_Output", "Figures", paste0(.name, ".pdf"))
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  ggsave(path, .plot, width = .width, height = .height)
+  message("Figura guardada: ", path)
+  invisible(path)
+}
+
+fun_save_tab <- function(.kbl, .name, .dir_root = here()) {
+  #' Guardar una tabla de kableExtra como .tex en 03_Output/Tables
+  #'
+  #' @param .kbl tabla creada con fun_kbl() (y, si se quiere, ajustes
+  #'   adicionales de kableExtra como pack_rows()).
+  #' @param .name texto. Nombre del archivo sin extensión.
+  #' @param .dir_root ruta base. here() en la estructura final.
+  #' @returns invisible: la ruta del archivo.
+  #' En el slide se incluye con \input{ruta/al/archivo.tex}. La tabla sale sin
+  #' caption ni entorno flotante: el título lo pone la diapositiva.
+  path <- file.path(.dir_root, "03_Output", "Tables", paste0(.name, ".tex"))
+  dir.create(dirname(path), recursive = TRUE, showWarnings = FALSE)
+  writeLines(as.character(.kbl), path)
+  message("Tabla guardada: ", path)
+  invisible(path)
+}
+
+fun_kbl <- function(.df, .align = NULL, .digits = 2) {
+  #' Tabla LaTeX con el formato común (booktabs, decimales con punto)
+  kbl(.df, format = "latex", booktabs = TRUE, linesep = "",
+      align = .align, digits = .digits,
+      format.args = list(big.mark = ",", decimal.mark = "."))
 }
