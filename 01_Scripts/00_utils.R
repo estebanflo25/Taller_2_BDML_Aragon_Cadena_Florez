@@ -16,8 +16,8 @@
 #     modelos (misma semilla, mismos folds, mismas métricas).
 #   - fun_oof(), fun_f1_curve() y fun_best_threshold(): umbral óptimo de
 #     clasificación a partir de las predicciones out-of-fold.
-#   - fun_num_label() y fun_save_submission(): envíos a Kaggle con el nombre y
-#     el formato correctos.
+#   - fun_num_label(), fun_save_submission() y fun_write_submission(): envíos
+#     a Kaggle con el nombre y el formato correctos.
 #   - theme_taller(), fun_save_fig() y fun_save_tab(): formato común de figuras
 #     (PDF 16:9) y tablas (LaTeX, booktabs) para los slides.
 # ==============================================================================
@@ -563,9 +563,9 @@ fun_num_label <- function(.x) {
 }
 
 fun_save_submission <- function(.model, .db_test, .threshold, .name, .dir_root = here()) {
-  #' Predecir sobre test y guardar el archivo de envío a Kaggle
+  #' Predecir sobre test con un modelo de caret y guardar el envío a Kaggle
   #'
-  #' @param .model objeto train de caret.
+  #' @param .model objeto train de caret (clasificación).
   #' @param .db_test tibble. Base de test con la columna id.
   #' @param .threshold numérico. Umbral de clasificación.
   #' @param .name texto. Nombre del archivo sin extensión: algoritmo e
@@ -573,7 +573,20 @@ fun_save_submission <- function(.model, .db_test, .threshold, .name, .dir_root =
   #' @param .dir_root ruta base. here() en la estructura final.
   #' @returns invisible: el tibble enviado (id, pobre).
   prob <- predict(.model, newdata = .db_test, type = "prob")[["Yes"]]
-  submission <- tibble(id = .db_test$id, pobre = as.integer(prob >= .threshold))
+  fun_write_submission(.db_test$id, prob, .threshold, .name, .dir_root)
+}
+
+fun_write_submission <- function(.ids, .prob, .threshold, .name, .dir_root = here()) {
+  #' Guardar el envío a Kaggle a partir de probabilidades ya calculadas
+  #'
+  #' Útil para modelos que no son de clasificación en caret (por ejemplo, el
+  #' modelo de probabilidad lineal), que predicen con predict() directamente.
+  #'
+  #' @param .ids vector. id de los hogares de test.
+  #' @param .prob vector numérico. Probabilidad predicha de ser pobre.
+  #' @param .threshold, .name, .dir_root como en fun_save_submission().
+  #' @returns invisible: el tibble enviado (id, pobre).
+  submission <- tibble(id = .ids, pobre = as.integer(.prob >= .threshold))
 
   # Validación contra el formato de Kaggle antes de gastar un cupo diario.
   sample <- read.csv(here("02_Data", "Raw", "sample_submission.csv"))
