@@ -61,9 +61,11 @@ spec <- tribble(
 es_pobre <- db_train$Pobre == "Yes"
 fmt <- \(x, d) map2_chr(x, d, \(xi, di) formatC(xi, format = "f", digits = di, big.mark = ","))
 
+# Las medias se redondean antes de restar, para que la diferencia coincida
+# exactamente con la resta de las columnas que se ven en la tabla.
 tabla <- spec |>
-  mutate(pobres    = map2_dbl(var, escala, \(v, e) mean(db_train[[v]][es_pobre]) * e),
-         no_pobres = map2_dbl(var, escala, \(v, e) mean(db_train[[v]][!es_pobre]) * e),
+  mutate(pobres    = round(map2_dbl(var, escala, \(v, e) mean(db_train[[v]][es_pobre]) * e), decimales),
+         no_pobres = round(map2_dbl(var, escala, \(v, e) mean(db_train[[v]][!es_pobre]) * e), decimales),
          diferencia = pobres - no_pobres) |>
   transmute(panel,
             Variable   = etiqueta,
