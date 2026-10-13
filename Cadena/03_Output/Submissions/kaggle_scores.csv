@@ -1,0 +1,2 @@
+fecha,archivo,modelo,umbral,f1_cv,f1_publico,enviado_por
+2026-10-12,logit_umbral_0_37.csv,Logit,0.37,0.739,0.73,Cadena
