@@ -497,14 +497,20 @@ fun_folds <- function(.y, .k = 5, .seed = 2026) {
 
 # Accuracy y Kappa (defaultSummary) + AUC-PR, precision, recall y F
 # (prSummary). Como en las clases del 26 de septiembre y 10 de octubre.
-# prSummary devuelve F = NA cuando el modelo no predice ningún pobre (pasa con
-# árboles muy podados); en ese caso el F1 correcto es 0, así que se reemplaza.
+#   - F: F1 con umbral 0.5. prSummary devuelve NA cuando el modelo no predice
+#     ningún pobre (pasa con árboles muy podados); el F1 correcto es 0.
+#   - F_opt: F1 con el mejor umbral de la grilla 0.01-0.99 en cada fold. Como
+#     el umbral se elige después, conviene escoger los hiperparámetros con
+#     F_opt (metric = "F_opt") y no con F, que fija el umbral en 0.5.
 fun_multi_stats <- function(data, lev = NULL, model = NULL) {
   stats <- c(defaultSummary(data, lev, model), prSummary(data, lev, model))
-  tp <- sum(data$obs == "Yes" & data$pred == "Yes")
-  fp <- sum(data$obs != "Yes" & data$pred == "Yes")
-  fn <- sum(data$obs == "Yes" & data$pred != "Yes")
-  stats["F"] <- 2 * tp / (2 * tp + fp + fn)
+  y  <- data$obs == "Yes"
+  f1 <- function(.pred) {
+    tp <- sum(.pred & y); fp <- sum(.pred & !y); fn <- sum(!.pred & y)
+    2 * tp / (2 * tp + fp + fn)
+  }
+  stats["F"]     <- f1(data$pred == "Yes")
+  stats["F_opt"] <- max(map_dbl(seq(0.01, 0.99, by = 0.01), \(u) f1(data$Yes >= u)))
   stats
 }
 

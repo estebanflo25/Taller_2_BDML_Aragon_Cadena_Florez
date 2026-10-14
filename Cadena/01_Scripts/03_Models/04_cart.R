@@ -12,22 +12,24 @@
 #
 # El hiperparámetro es cp (parámetro de complejidad): una división solo se
 # conserva si reduce el error relativo en al menos cp. Un cp grande da un árbol
-# pequeño (más sesgo); un cp pequeño, un árbol grande (más varianza). Se elige
-# el cp que maximiza el F1 en validación cruzada y después el umbral con la
-# misma regla de los demás modelos.
+# pequeño (más sesgo); un cp pequeño, un árbol grande (más varianza).
 #
-# A diferencia del logit, el árbol no necesita excluir variables redundantes:
-# si dos variables dicen lo mismo, simplemente usa una de ellas para dividir.
-# Por eso se usan todos los predictores de la base.
+# El cp se elige con el F1 a umbral 0.5 (como en clase) y después se elige el
+# umbral con la regla común. Se probó también elegir el cp con F_opt y usar
+# las categóricas como factores, y el F1 no mejoró.
+#
+# El árbol no necesita excluir variables redundantes: si dos variables dicen
+# lo mismo, simplemente usa una de ellas para dividir.
 #
 # Entrada:  02_Data/Processed/db_{train,test}.rds
 # Salida:   <dir_root>/03_Output/Models/cart_cv.rds
+#           <dir_root>/03_Output/Figures/fig_arbol.pdf
 #           <dir_root>/03_Output/Submissions/CART_cp_<cp>_umbral_<umbral>.csv
 #           <dir_root>/03_Output/Submissions/CART_up_cp_<cp>_umbral_<umbral>.csv
 # ==============================================================================
 
 if (!require(pacman)) install.packages("pacman")
-pacman::p_load(here, tidyverse, caret, MLmetrics, rpart)
+pacman::p_load(here, tidyverse, caret, MLmetrics, rpart, rpart.plot)
 
 source(here("01_Scripts", "00_utils.R"))
 
@@ -101,9 +103,10 @@ fun_resultados <- function(.model, .nombre) {
     mutate(importancia = 100 * importancia / sum(importancia)) |>
     arrange(desc(importancia))
 
-  # F1 de validación cruzada (umbral 0.5) para cada cp de la grilla: muestra
-  # el dilema sesgo-varianza.
-  tuning <- .model$results |> as_tibble() |> select(cp, F, AUC, Precision, Recall)
+  # F1 de validación cruzada para cada cp de la grilla: muestra el dilema
+  # sesgo-varianza.
+  tuning <- .model$results |> as_tibble() |>
+    select(cp, F_opt, F, AUC, Precision, Recall)
 
   list(resumen = resumen, curva = curva, oof = oof,
        importancia = importancia, tuning = tuning)
@@ -117,7 +120,71 @@ print(res_cart$importancia, n = 15)
 
 
 # ------------------------------------------------------------------------------
-# 4. Guardar resultados y envíos
+# 4. Figura del árbol
+# ------------------------------------------------------------------------------
+# El árbol elegido tiene cientos de hojas y no se puede leer. Para la figura se
+# poda el árbol sin rebalanceo hasta 8 divisiones (9 hojas): son las primeras
+# y más importantes divisiones del mismo árbol, no un modelo distinto.
+cptable  <- model_cart$finalModel$cptable
+cp_fig   <- cptable[max(which(cptable[, "nsplit"] <= 8)), "CP"]
+arbol_fig <- prune(model_cart$finalModel, cp = cp_fig)
+
+# Nombres de las clases y de las variables en español para la figura.
+attr(arbol_fig, "ylevels") <- c("Pobre", "No pobre")
+
+etiquetas <- c(
+  num_arriendo_pc         = "Arriendo por persona",
+  num_log_arriendo_pc     = "Log arriendo por persona",
+  num_arriendo            = "Arriendo del hogar",
+  num_horas_pc            = "Horas trabajadas por persona",
+  num_horas_total         = "Horas trabajadas del hogar",
+  prop_ocupados_ug        = "Ocupados por persona",
+  prop_ocupados_pet       = "Ocupados / edad de trabajar",
+  num_ocupados            = "Ocupados",
+  num_cotizantes          = "Cotizantes a pensión",
+  prop_cotizantes_ocup    = "Ocupados que cotizan",
+  bin_head_cotiza         = "Jefe cotiza",
+  num_empresa_mas5        = "Ocupados en empresa > 5",
+  prop_empresa_mas5_ocup  = "Ocupados en empresa > 5 (prop.)",
+  bin_any_prima_servicios = "Alguien recibe prima",
+  num_personas_ug         = "Personas en la unidad de gasto",
+  num_personas            = "Personas en el hogar",
+  num_personas_cuarto     = "Personas por cuarto",
+  num_minors              = "Menores de 18",
+  num_mean_educ_adults    = "Educación promedio adultos",
+  num_head_educ           = "Educación del jefe",
+  prop_subsidiado         = "Miembros en régimen subsidiado",
+  num_cuartos             = "Cuartos de la vivienda"
+)
+
+fun_split_label <- function(x, labs, digits, varlen, faclen) {
+  for (v in names(etiquetas)) {
+    labs <- sub(paste0("^", v, "(?=[ =<>])"), etiquetas[[v]], labs, perl = TRUE)
+  }
+  # Las categóricas entran como dummies (por ejemplo, cat_geoRURAL_44).
+  labs <- sub("^cat_geo",      "Territorio: ", labs)
+  labs <- sub("^cat_dominio",  "Dominio: ",    labs)
+  labs <- sub("^cat_tenencia", "Tenencia: ",   labs)
+  # Divisiones con muchas categorías (por ejemplo, territorios): se acortan.
+  if_else(nchar(labs) > 45, paste0(substr(labs, 1, 42), "..."), labs)
+}
+
+path_fig <- file.path(dir_root, "03_Output", "Figures", "fig_arbol.pdf")
+dir.create(dirname(path_fig), recursive = TRUE, showWarnings = FALSE)
+pdf(path_fig, width = 11, height = 11 * 9 / 16)
+rpart.plot(arbol_fig,
+           type = 2,
+           extra = 104,          # probabilidad de cada clase y % de hogares
+           box.palette = "Blues",
+           fallen.leaves = TRUE,
+           split.fun = fun_split_label,
+           tweak = 1.1)
+dev.off()
+message("Figura guardada: ", path_fig)
+
+
+# ------------------------------------------------------------------------------
+# 5. Guardar resultados y envíos
 # ------------------------------------------------------------------------------
 # Como en el logit, no se guarda el objeto train completo (pesa demasiado).
 dir.create(file.path(dir_root, "03_Output", "Models"), recursive = TRUE, showWarnings = FALSE)
