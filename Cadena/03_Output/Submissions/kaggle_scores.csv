@@ -1,2 +1,5 @@
 fecha,archivo,modelo,umbral,f1_cv,f1_publico,enviado_por
 2026-10-12,logit_umbral_0_37.csv,Logit,0.37,0.739,0.73,Cadena
+2026-10-12,lpm_parsimonioso_umbral_0_34.csv,LPM parsimonioso,0.34,0.656,0.66,Cadena
+2026-10-13,EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv,Elastic net,0.36,0.738,0.73,Cadena
+2026-10-13,CART_cp_0_00013_umbral_0_3.csv,CART,0.30,0.704,0.70,Cadena
