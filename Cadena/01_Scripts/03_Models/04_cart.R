@@ -133,31 +133,57 @@ arbol_fig <- prune(model_cart$finalModel, cp = cp_fig)
 attr(arbol_fig, "ylevels") <- c("Pobre", "No pobre")
 
 etiquetas <- c(
-  num_arriendo_pc         = "Arriendo por persona",
+  num_arriendo_pc         = "Arriendo por persona ($)",
   num_log_arriendo_pc     = "Log arriendo por persona",
-  num_arriendo            = "Arriendo del hogar",
+  num_arriendo            = "Arriendo del hogar ($)",
   num_horas_pc            = "Horas trabajadas por persona",
   num_horas_total         = "Horas trabajadas del hogar",
-  prop_ocupados_ug        = "Ocupados por persona",
+  prop_ocupados_ug        = "Proporción de ocupados en el hogar",
   prop_ocupados_pet       = "Ocupados / edad de trabajar",
   num_ocupados            = "Ocupados",
   num_cotizantes          = "Cotizantes a pensión",
-  prop_cotizantes_ocup    = "Ocupados que cotizan",
-  bin_head_cotiza         = "Jefe cotiza",
+  prop_cotizantes_ocup    = "Proporción de ocupados que cotizan",
   num_empresa_mas5        = "Ocupados en empresa > 5",
-  prop_empresa_mas5_ocup  = "Ocupados en empresa > 5 (prop.)",
-  bin_any_prima_servicios = "Alguien recibe prima",
+  prop_empresa_mas5_ocup  = "Proporción de ocupados en empresa > 5",
   num_personas_ug         = "Personas en la unidad de gasto",
   num_personas            = "Personas en el hogar",
   num_personas_cuarto     = "Personas por cuarto",
   num_minors              = "Menores de 18",
   num_mean_educ_adults    = "Educación promedio adultos",
   num_head_educ           = "Educación del jefe",
-  prop_subsidiado         = "Miembros en régimen subsidiado",
-  num_cuartos             = "Cuartos de la vivienda"
+  prop_subsidiado         = "Proporción en régimen subsidiado",
+  num_cuartos             = "Cuartos de la vivienda",
+  num_lp                  = "Línea de pobreza ($)"
+)
+
+# Binarias: rpart.plot escribe "variable = 0" o "variable = 1". Se reemplaza
+# toda la condición por una frase: c("si vale 0", "si vale 1").
+binarias <- list(
+  bin_any_pension             = c("Nadie recibe pensión", "Alguien recibe pensión"),
+  bin_any_arriendos_pensiones = c("Sin ingresos por arriendos o pensiones",
+                                  "Con ingresos por arriendos o pensiones"),
+  bin_any_prima_servicios     = c("Nadie recibe prima de servicios",
+                                  "Alguien recibe prima de servicios"),
+  bin_head_cotiza             = c("Jefe no cotiza a pensión", "Jefe cotiza a pensión"),
+  bin_any_ayuda_instituciones = c("Sin ayudas institucionales", "Con ayudas institucionales"),
+  bin_any_desocupado          = c("Sin desocupados", "Con algún desocupado"),
+  bin_arriendo_imputado       = c("Sabe el valor del arriendo", "No sabe el valor del arriendo"),
+  bin_rural                   = c("Zona urbana", "Zona rural")
 )
 
 fun_split_label <- function(x, labs, digits, varlen, faclen) {
+  # Números en notación científica (89e+3) con separador de miles (89,000).
+  labs <- vapply(labs, \(l) {
+    m <- gregexpr("[0-9.]+e[+-]?[0-9]+", l)
+    regmatches(l, m) <- lapply(regmatches(l, m), \(v)
+                               format(as.numeric(v), big.mark = ",", scientific = FALSE, trim = TRUE))
+    l
+  }, character(1), USE.NAMES = FALSE)
+  
+  for (v in names(binarias)) {
+    labs[labs == paste(v, "= 0")] <- binarias[[v]][1]
+    labs[labs == paste(v, "= 1")] <- binarias[[v]][2]
+  }
   for (v in names(etiquetas)) {
     labs <- sub(paste0("^", v, "(?=[ =<>])"), etiquetas[[v]], labs, perl = TRUE)
   }
@@ -165,8 +191,7 @@ fun_split_label <- function(x, labs, digits, varlen, faclen) {
   labs <- sub("^cat_geo",      "Territorio: ", labs)
   labs <- sub("^cat_dominio",  "Dominio: ",    labs)
   labs <- sub("^cat_tenencia", "Tenencia: ",   labs)
-  # Divisiones con muchas categorías (por ejemplo, territorios): se acortan.
-  if_else(nchar(labs) > 45, paste0(substr(labs, 1, 42), "..."), labs)
+  labs
 }
 
 path_fig <- file.path(dir_root, "03_Output", "Figures", "fig_arbol.pdf")
@@ -178,9 +203,12 @@ rpart.plot(arbol_fig,
            box.palette = "Blues",
            fallen.leaves = TRUE,
            split.fun = fun_split_label,
+           yes.text = "sí",
+           no.text  = "no",
            tweak = 1.1)
 dev.off()
 message("Figura guardada: ", path_fig)
+
 
 
 # ------------------------------------------------------------------------------
