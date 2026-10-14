@@ -496,9 +496,16 @@ fun_folds <- function(.y, .k = 5, .seed = 2026) {
 }
 
 # Accuracy y Kappa (defaultSummary) + AUC-PR, precision, recall y F
-# (prSummary). Como en la clase del 26 de septiembre.
+# (prSummary). Como en las clases del 26 de septiembre y 10 de octubre.
+# prSummary devuelve F = NA cuando el modelo no predice ningún pobre (pasa con
+# árboles muy podados); en ese caso el F1 correcto es 0, así que se reemplaza.
 fun_multi_stats <- function(data, lev = NULL, model = NULL) {
-  c(defaultSummary(data, lev, model), prSummary(data, lev, model))
+  stats <- c(defaultSummary(data, lev, model), prSummary(data, lev, model))
+  tp <- sum(data$obs == "Yes" & data$pred == "Yes")
+  fp <- sum(data$obs != "Yes" & data$pred == "Yes")
+  fn <- sum(data$obs == "Yes" & data$pred != "Yes")
+  stats["F"] <- 2 * tp / (2 * tp + fp + fn)
+  stats
 }
 
 fun_train_control <- function(.folds) {
