@@ -3,3 +3,12 @@ fecha,archivo,modelo,umbral,f1_cv,f1_publico,enviado_por
 2026-10-12,lpm_parsimonioso_umbral_0_34.csv,LPM parsimonioso,0.34,0.656,0.66,Cadena
 2026-10-13,EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv,Elastic net,0.36,0.738,0.73,Cadena
 2026-10-13,CART_cp_0_00013_umbral_0_3.csv,CART,0.30,0.704,0.70,Cadena
+2026-10-14,ENS_logit_0_7_CART_cp_0_00013_umbral_0_36.csv,Ensamble logit + CART,0.36,0.745,0.74,Cadena
+2026-10-14,CART_up_cp_0_0001_umbral_0_74.csv,CART con up-sampling,0.74,0.702,0.69,Cadena
+2026-10-15,RF_mtry_26_minnode_10_ntree_300_umbral_0_38.csv,Random Forest (OOB),0.38,0.737,0.73,Cadena
+2026-10-15,RF_mtry_65_minnode_10_ntree_300_umbral_0_37.csv,Random Forest (OOB),0.37,0.741,0.73,Cadena
+2026-10-15,ENS_logit_0_4_RF_mtry_65_umbral_0_38.csv,Ensamble logit + RF,0.38,0.752,0.74,Cadena
+2026-10-15,ENS_logit_0_1_RF_0_1_XGB_0_8_umbral_0_37.csv,Ensamble logit + RF + XGBoost,0.37,0.761,0.76,Cadena
+2026-10-15,XGB_ingreso_depth_6_eta_0_05_nrounds_1000_umbral_0_38.csv,XGBoost de ingreso,0.38,0.757,0.76,Cadena
+2026-10-15,XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv,XGBoost,0.36,0.760,0.76,Cadena
+2026-10-15,ENS_ing_0_4_clas_0_6_umbral_0_37.csv,Ensamble XGBoost ingreso + clasificación,0.37,0.762,0.76,Cadena
