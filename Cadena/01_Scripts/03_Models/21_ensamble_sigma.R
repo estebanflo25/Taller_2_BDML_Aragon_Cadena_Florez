@@ -10,7 +10,7 @@
 # Dos ideas:
 #   1. Promediar el ingreso predicho (yhat, en log) de varios modelos de
 #      personas: el 17 (LightGBM), el 20 (LightGBM con crudas y pesos) y,
-#      si se puede, el 16 (XGBoost). Se equivocan en hogares algo distintos,
+#      si existen, el 16 (XGBoost) y el 22 (un modelo por componente). Se equivocan en hogares algo distintos,
 #      así que el promedio predice mejor el ingreso que cualquiera solo.
 #   2. Incertidumbre por hogar. Hasta ahora la probabilidad salía de un logit
 #      que solo mira z = yhat - g. Pero la misma z no significa lo mismo en
@@ -36,6 +36,8 @@
 #           <dir_root>/03_Output/Models/xgb_ingreso_personas.rds    (16, opcional)
 #           <dir_root>/03_Output/Models/lgb_ingreso_personas.rds    (17)
 #           <dir_root>/03_Output/Models/lgb_personas_crudas_pesos.rds (20)
+#           <dir_root>/03_Output/Models/lgb_personas_componentes.rds (22, opcional:
+#           si existe, se agregan los conjuntos con el 22)
 # Salida:   <dir_root>/03_Output/Models/ensamble_sigma.rds
 #           <dir_root>/03_Output/Submissions/ENS_clas_<>_personas_<>_sigma_umbral_<>.csv
 #
@@ -53,6 +55,12 @@ dir_root <- here("Cadena")
 dir_mod  <- file.path(dir_root, "03_Output", "Models")
 
 fun_paso <- function(.texto) message(format(Sys.time(), "%H:%M"), " | ", .texto)
+
+# Versión que se guarda y se envía. NULL = la de mayor F1 CV.
+# Para recuperar una versión concreta, escribe su nombre tal como aparece en la
+# tabla de comparación. Ejemplo (el envío del 19 de octubre, F1 CV 0.7755):
+#   version_elegida <- "17 + 20 | con sigma"
+version_elegida <- NULL
 
 
 # ------------------------------------------------------------------------------
@@ -116,7 +124,8 @@ fun_leer_yhat <- function(.archivo) {
 }
 yhats <- list(p16 = fun_leer_yhat("xgb_ingreso_personas.rds"),
               p17 = fun_leer_yhat("lgb_ingreso_personas.rds"),
-              p20 = fun_leer_yhat("lgb_personas_crudas_pesos.rds")) |> compact()
+              p20 = fun_leer_yhat("lgb_personas_crudas_pesos.rds"),
+              p22 = fun_leer_yhat("lgb_personas_componentes.rds")) |> compact()
 stopifnot("p17" %in% names(yhats), "p20" %in% names(yhats))
 cat("\nModelos de personas disponibles:", paste(names(yhats), collapse = ", "), "\n")
 
@@ -194,6 +203,10 @@ fun_ensamble <- function(.p_ing) {
 # Conjuntos de modelos de personas que se promedian
 conjuntos <- list("17" = "p17", "17 + 20" = c("p17", "p20"))
 if ("p16" %in% names(yhats)) conjuntos[["16 + 17 + 20"]] <- c("p16", "p17", "p20")
+if ("p22" %in% names(yhats)) {
+  conjuntos[["17 + 20 + 22"]] <- c("p17", "p20", "p22")
+  if ("p16" %in% names(yhats)) conjuntos[["16 + 17 + 20 + 22"]] <- c("p16", "p17", "p20", "p22")
+}
 
 versiones <- list()
 for (nombre in names(conjuntos)) {
@@ -229,7 +242,10 @@ cat(sprintf("Mejor versión: %s | F1 CV %.4f (%+.4f frente al par del 18)\n",
             comparacion$version[1], comparacion$F1[1], comparacion$F1[1] - ref18))
 
 # Tamaño de sigma por posición del jefe: sanity check de que tiene sentido
-mejor_v <- versiones[[comparacion$version[1]]]
+version_final <- if (is.null(version_elegida)) comparacion$version[1] else version_elegida
+stopifnot(version_final %in% names(versiones))
+cat(sprintf("\nVersión que se guarda y se envía: %s\n", version_final))
+mejor_v <- versiones[[version_final]]
 cat("\nSigma promedio (fuera de muestra) según la posición del jefe:\n")
 print(tibble(posicion = hog_train$cat_head_posicion, sigma = mejor_v$sigma$oof) |>
         group_by(posicion) |> summarize(hogares = n(), sigma = mean(sigma)) |>
@@ -244,7 +260,8 @@ prob_oof  <- w * oof_clas  + (1 - w) * mejor_v$p$oof
 prob_test <- w * test_clas + (1 - w) * mejor_v$p$test
 curva <- tibble(rowIndex = seq_along(y_hog), obs = y_hog, prob = prob_oof) |> fun_f1_curve()
 best  <- fun_best_threshold(curva)
-stopifnot(abs(best$F1 - comparacion$F1[1]) < 1e-9, !anyNA(prob_test))
+stopifnot(abs(best$F1 - comparacion$F1[comparacion$version == version_final]) < 1e-9,
+          !anyNA(prob_test))
 
 resumen <- tibble(
   modelo          = sprintf("Ensamble clasificación (11) + ingreso de personas (%s), %s",
@@ -258,7 +275,12 @@ resumen <- tibble(
 print(resumen, width = Inf)
 
 fun_paso("Guardando resultados y envío")
-saveRDS(list(resumen = resumen, comparacion = comparacion, curva = curva,
+# Además del elegido, se guardan las probabilidades de TODAS las versiones
+# (parte de ingreso, antes de mezclar con el clasificador), para poder
+# re-ensamblar cualquiera sin volver a correr nada.
+todas <- imap(versiones, \(v, n) list(w_clas = v$ens$w_clas, umbral = v$ens$umbral, F1 = v$ens$F1,
+                                      oof = v$p$oof, test = v$p$test))
+saveRDS(list(resumen = resumen, comparacion = comparacion, curva = curva, todas = todas,
              oof = tibble(rowIndex = seq_len(nrow(hog_train)), obs = y_hog, prob = prob_oof,
                           prob_ingreso = mejor_v$p$oof, sigma = mejor_v$sigma$oof),
              prob_test = tibble(id = hog_test$id, prob = prob_test,
