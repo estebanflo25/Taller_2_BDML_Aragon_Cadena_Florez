@@ -1,0 +1,37 @@
+envio_1,envio_2,E_max,correlacion
+Promedio LightGBM monótono + XGBoost con brecha,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7641413750509958,0.9541331864264648
+LightGBM,Promedio LightGBM monótono + XGBoost con brecha,0.7640041556788376,0.9270151531886467
+LightGBM monótono,Promedio LightGBM monótono + XGBoost con brecha,0.7639797952823681,0.9327520739466719
+XGBoost base (referencia),Promedio LightGBM monótono + XGBoost con brecha,0.7639441078589494,0.9105913572833376
+XGBoost con brecha,Promedio LightGBM monótono + XGBoost con brecha,0.7639281096558364,0.9467019783301542
+Gradient Boosting (gbm),Promedio LightGBM monótono + XGBoost con brecha,0.7638477946210198,0.8854877850264785
+AdaBoost.M1,Promedio LightGBM monótono + XGBoost con brecha,0.7638438754807144,0.7631863822105308
+Random Forest con brecha,Promedio LightGBM monótono + XGBoost con brecha,0.7638438754807144,0.782501438042784
+XGBoost con brecha,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7634805597406652,0.9177229390675739
+LightGBM monótono,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7634779881642221,0.9228527679394218
+LightGBM,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7634521855488486,0.9310840787275424
+XGBoost base (referencia),"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7634077245947579,0.8950098317758253
+Gradient Boosting (gbm),"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7631581158665887,0.9173050803526489
+AdaBoost.M1,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7631576686637397,0.770398150093452
+Random Forest con brecha,"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.7631576686637397,0.7806179059970514
+LightGBM monótono,XGBoost con brecha,0.7629200087447813,0.8895040256921973
+LightGBM,XGBoost con brecha,0.7629129294693577,0.889906140949196
+LightGBM,LightGBM monótono,0.7627930322842694,0.9303531561664868
+XGBoost base (referencia),LightGBM monótono,0.7627276131688441,0.8744181417202441
+XGBoost base (referencia),LightGBM,0.7626925988252993,0.8833544602940886
+XGBoost base (referencia),XGBoost con brecha,0.7625051274910057,0.9112979970357861
+LightGBM monótono,Gradient Boosting (gbm),0.7621187361904587,0.8963655900803681
+LightGBM monótono,AdaBoost.M1,0.7621104809064616,0.7620463423760415
+LightGBM monótono,Random Forest con brecha,0.7621104809064616,0.7748745829329665
+LightGBM,Gradient Boosting (gbm),0.7621046644010251,0.8922276021790055
+LightGBM,AdaBoost.M1,0.7620969427432627,0.7579972138119785
+LightGBM,Random Forest con brecha,0.7620969427432627,0.7646469842751092
+XGBoost con brecha,Gradient Boosting (gbm),0.7620081837993447,0.8590746745650965
+XGBoost con brecha,AdaBoost.M1,0.7619797440605627,0.7500073201219107
+XGBoost con brecha,Random Forest con brecha,0.7619797440605627,0.7814892314606209
+XGBoost base (referencia),Gradient Boosting (gbm),0.7614200287317155,0.8530743292658797
+XGBoost base (referencia),AdaBoost.M1,0.7613472632525302,0.7406463311443033
+XGBoost base (referencia),Random Forest con brecha,0.7613472632525302,0.783638943264532
+Gradient Boosting (gbm),AdaBoost.M1,0.7574056632811866,0.7595069556238223
+Gradient Boosting (gbm),Random Forest con brecha,0.7574056632811866,0.7720491162783286
+AdaBoost.M1,Random Forest con brecha,0.7437907532898226,0.6820157541304628

@@ -1,0 +1,5 @@
+base,filas,columnas,hogares_unicos
+train_hogares,164960,17,164960
+test_hogares,66168,16,66168
+train_personas,543109,63,164960
+test_personas,219644,63,66168
