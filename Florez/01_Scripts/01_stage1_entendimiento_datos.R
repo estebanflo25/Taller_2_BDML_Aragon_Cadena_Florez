@@ -34,8 +34,7 @@ fun_tasa <- function(.db, ...) {
 }
 
 
-# ==============================================================================
-# 1. ANATOMÍA DE LAS CUATRO BASES
+###### 1. ANATOMÍA DE LAS CUATRO BASES ######
 
 raw <- list(
   train_hogares  = readRDS(here("02_Data", "Raw", "train_hogares.rds")),
@@ -65,7 +64,7 @@ stopifnot(
   setequal(raw$test_hogares$id,  raw$test_personas$id),
   length(intersect(raw$train_hogares$id, raw$test_hogares$id)) == 0
 )
-message("Llaves verificadas: el merge por id es uno-a-muchos y sin pérdidas.")
+message("Llaves verificadas: el merge por id es 'uno a muchos' y sin pérdidas.")
 
 # 1.3 Personas por hogar (el tamaño del hogar es, en sí mismo, un predictor).
 raw$train_personas |> count(id, name = "personas") |> count(personas) |> print(n = 25)
@@ -77,19 +76,23 @@ raw$train_personas |> count(id, name = "personas") |> count(personas) |> print(n
 # conserva solo la intersección de columnas (+ Pobre), así que en los .rds ya no
 # aparecen. Si tienes los CSV originales en 02_Data/Raw, este bloque lista las
 # variables exclusivas de train para que las veas explícitamente.
-csv_train <- here("02_Data", "Raw", "train_hogares.csv")
-csv_test  <- here("02_Data", "Raw", "test_hogares.csv")
-if (file.exists(csv_train) && file.exists(csv_test)) {
-  solo_train <- setdiff(names(read.csv(csv_train, nrows = 1)), names(read.csv(csv_test, nrows = 1)))
+
+rds_train <- here("02_Data", "Raw", "train_hogares.rds")
+rds_test  <- here("02_Data", "Raw", "test_hogares.rds")
+
+if (file.exists(rds_train) && file.exists(rds_test)) {
+  # Leemos solo los nombres de las columnas o el objeto para extraer sus nombres
+  # readRDS carga el data frame; usamos names() directamente sobre él
+  solo_train <- setdiff(names(readRDS(rds_train)), names(readRDS(rds_test)))
   message("Variables de hogares exclusivas de train: ", paste(solo_train, collapse = ", "))
 } else {
-  message("CSV originales no encontrados: se omite la lista de variables exclusivas de train.")
+  message("Archivos RDS originales no encontrados: se omite la lista de variables exclusivas de train.")
 }
 
 
-# ==============================================================================
-# 2. LA VARIABLE OBJETIVO
-# ==============================================================================
+
+##### 2. LA VARIABLE OBJETIVO #####
+
 # Diccionario DANE: Pobre = 1 si el ingreso per cápita de la UNIDAD DE GASTO,
 # con imputación de arriendo a propietarios y usufructuarios (Ingpcug), es
 # menor que la línea de pobreza del hogar (Lp):
@@ -115,6 +118,8 @@ p_muestral  <- mean(h_train$pobre)
 p_ponderada <- weighted.mean(h_train$pobre, h_train$Fex_c)
 cat(sprintf("Pobreza muestral: %.1f %% | ponderada (Fex_c): %.1f %%\n",
             100 * p_muestral, 100 * p_ponderada))
+# Muestral 20% , Ponderada 20,8%
+
 
 # 2.2 Línea de pobreza por dominio: la rural es ~40 % más baja (canasta más
 # barata), y aun así la pobreza rural es la más alta.
@@ -127,9 +132,9 @@ print(lp_dominio, n = 25)
 write_csv(lp_dominio, tab_path("s1_pobreza_lp_por_dominio.csv"))
 
 
-# ==============================================================================
-# 3. AUDITORÍA DE LAS DECISIONES DEL PIPELINE (01_Scripts/01_Data + 00_utils.R)
-# ==============================================================================
+
+##### 3. AUDITORÍA DE LAS DECISIONES DEL PIPELINE (01_Scripts/01_Data + 00_utils.R) #####
+
 # Formato de cada bloque:  DECISIÓN -> EVIDENCIA -> VEREDICTO.
 # Los veredictos de los comentarios corresponden a la corrida sobre los datos
 # actuales del repo (octubre de 2026).
@@ -149,6 +154,7 @@ chk_ug <- p_train |>
   inner_join(select(h_train, id, Nper, Npersug, pobre), by = "id")
 cat("Coincidencia Nper - Npersug con P6050 en {6,7,8}:",
     percent(mean(chk_ug$Nper - chk_ug$Npersug == chk_ug$no_ug), 0.01), "\n")
+
 # VEREDICTO: correcto (100 %). Nota: la guía de la clase complementaria dice
 # "excluyendo empleados domésticos y PARIENTES del jefe"; eso es impreciso. El
 # diccionario y los datos confirman que se excluyen servicio doméstico,
@@ -166,6 +172,8 @@ print(tab_servicio)
 # idéntica" y con eso la pierde. SUGERENCIA: agregar en fun_preprocess_hogares()
 #   bin_personas_fuera_ug = as.integer(Nper > Npersug)
 # para que todos los modelos la vean de forma explícita.
+
+
 
 # ------------------------------------------------------------------------------
 # 3.2 Faltantes estructurales: "NA = no aplica" (regla general NA -> 0)
@@ -192,9 +200,9 @@ print(summary(educ_na$P6040))
 # aplica a menores de 3 años). Para el jefe del hogar, que es lo que más pesa en
 # el modelo, el impacto es nulo.
 
-# ------------------------------------------------------------------------------
+
+
 # 3.4 Arriendo: coalesce(P5140, P5130), códigos 98/99, valores absurdos
-# ------------------------------------------------------------------------------
 # P5140 = arriendo pagado (lo responden los arrendatarios, P5090 = 3).
 # P5130 = arriendo que pagaría (lo responden propietarios, usufructuarios y
 #         ocupantes). EVIDENCIA de que son complementarias:
@@ -217,14 +225,14 @@ write_csv(tab_arriendo, tab_path("s1_arriendo_codigos.csv"))
 # informativo y no aleatorio. Las medianas de imputación y el recorte en el
 # percentil 99,9 se calculan solo con train (sin fuga hacia test). Bien.
 #
-# OJO PARA LA PRESENTACIÓN: el arriendo per cápita es el mejor predictor en
-# parte por construcción (el arriendo imputado entra en Ingpcug para dueños y
-# usufructuarios). En política esto importa: es barato de preguntar, pero es
-# autorreportado y manipulable si la gente sabe que define un subsidio.
+#*** NOTA : OJO PARA LA PRESENTACIÓN: el arriendo per cápita es el mejor predictor en
+#*** parte por construcción (el arriendo imputado entra en Ingpcug para dueños y
+#*** usufructuarios). En política esto importa: es barato de preguntar, pero es
+#*** autorreportado y manipulable si la gente sabe que define un subsidio.
 
-# ------------------------------------------------------------------------------
+
+
 # 3.5 Tasas con denominador cero (dependencia, ocupación, composición del empleo)
-# ------------------------------------------------------------------------------
 # DECISIÓN: la tasa se fija en 0 y se agrega una bandera bin_sin_* (justo el
 # "tratamiento especial" que pedía la clase complementaria).
 db_train <- readRDS(here("02_Data", "Processed", "db_train.rds")) |>
@@ -236,7 +244,8 @@ tab_banderas <- map_dfr(banderas, \(b) fun_tasa(db_train, valor = .data[[b]]) |>
                           mutate(bandera = b, .before = 1))
 print(tab_banderas)
 # VEREDICTO: correcto. bin_sin_ocupados (hogares sin ningún ocupado, ~14 %) es
-# muy informativa. bin_sin_pet vale 1 en un solo hogar: no aporta y puede ser
+# muy informativa.
+# bin_sin_pet vale 1 en un solo hogar: no aporta y puede ser
 # constante dentro de un fold (Cadena ya la excluye; hay que excluirla en LDA,
 # QDA y KNN por la misma razón).
 

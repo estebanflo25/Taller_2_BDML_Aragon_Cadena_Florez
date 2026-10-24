@@ -1,0 +1,10 @@
+variable,cobertura,comentario
+P5100,0.03410523763336566,Solo hogares que pagan hipoteca (P5090 = 2); cat_tenencia ya los identifica
+Li,1,Li / Lp casi constante dentro de dominio y mes: redundante con num_lp
+Fex_c,1,"Diseño muestral, no característica del hogar; no se usa como predictor"
+P7050,0.02254611873491325,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
+P7110,0.03997724213739783,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
+P7120,0.03997724213739783,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
+P7160,0.10933532679443721,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
+P7310,0.055370100661193244,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
+P7350,0.0490546096639901,Pregunta de baja cobertura (subgrupo de ocupados o desocupados)
