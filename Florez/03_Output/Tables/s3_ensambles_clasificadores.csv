@@ -1,3 +1,0 @@
-ensamble,umbral,F1_elegido,F1_honesto,dif_vs_base,se_dif
-Promedio LightGBM monótono + XGBoost con brecha,0.37,0.7639106641029434,0.7636476426799007,0.002552015280641906,8.309244755653547e-4
-"Promedio boosting (LGB monótono, XGB brecha, gbm)",0.38,0.7631992575183749,0.7631992575183749,0.0018429189226255582,4.442961009175013e-4
