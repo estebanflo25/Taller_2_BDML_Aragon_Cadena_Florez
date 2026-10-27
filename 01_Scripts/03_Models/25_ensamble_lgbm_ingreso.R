@@ -170,3 +170,47 @@ message("Envío guardado: ", ruta_envio, " | pobres predichos: ",
 t_ref <- unname(ing$prob_test$prob[match(db_test$id, ing$prob_test$id)])
 cat("Hogares de test clasificados distinto que el ensamble en Kaggle:",
     sum(envio$pobre != as.integer(t_ref >= fun_umbral(p_referencia))), "\n")
+
+
+##### 5. FIGURA PARA LOS SLIDES #####
+
+# fig_curvas_f1_finalistas: F1 fuera de muestra según el umbral para los tres
+# modelos finalistas del equipo. Se lee de los .rds que guardan los siguientes scripts:
+#   - Mejor modelo: 23_ensamble_sigma.R (ensamble_sigma.rds)
+#   - Ensamble XGBoost + LightGBM de personas: 18_ensamble_personas.R
+#   - Este script (ens_lgbm_ingreso.rds)
+
+fun_curva <- function(.p, .nombre) {
+  tibble(umbral = seq(0.15, 0.70, by = 0.01)) |>
+    mutate(F1 = map_dbl(umbral, \(u) fun_f1(.p[e], y_num[e] == 1, u)), modelo = .nombre)
+}
+p_personas <- readRDS(file.path(dir_modelos, "ensamble_personas.rds"))$oof_mejor |>
+  arrange(rowIndex) |> pull(prob)
+stopifnot(length(p_personas) == n)
+curvas <- bind_rows(
+  fun_curva(p_referencia, "Mejor: 0,3 XGBoost + 0,7 ingreso (17+20+22, sigma)"),
+  fun_curva(p_ens,        "LightGBM monótono 0,2 + ingreso (17+20+22, sigma) 0,8"),
+  fun_curva(p_personas,   "XGBoost 0,4 + LightGBM de personas (17) 0,6")
+)
+maximos <- curvas |> group_by(modelo) |> slice_max(F1, n = 1, with_ties = FALSE)
+
+fig_curvas <- ggplot(curvas, aes(x = umbral, y = F1, color = modelo)) +
+  geom_line(linewidth = 1) +
+  geom_point(data = maximos, size = 2.5) +
+  scale_color_manual(values = c("Mejor: 0,3 XGBoost + 0,7 ingreso (17+20+22, sigma)" = "#D55E00",
+                                "LightGBM monótono 0,2 + ingreso (17+20+22, sigma) 0,8" = "#009E73",
+                                "XGBoost 0,4 + LightGBM de personas (17) 0,6" = "#0072B2")) +
+  coord_cartesian(ylim = c(0.73, 0.78)) +
+  labs(title    = "Los tres finalistas: misma forma, distinto techo",
+       subtitle = "F1 fuera de muestra (sin Bogotá) según el umbral de clasificación",
+       x = "Umbral de probabilidad", y = "F1", color = NULL,
+       caption  = "Puntos: umbral que maximiza el F1 de cada modelo. Mismos hogares y mismos 5 folds para los tres.") +
+  theme_minimal(base_size = 12) +
+  theme(plot.title = element_text(face = "bold"), plot.title.position = "plot",
+        plot.subtitle = element_text(color = "grey30"),
+        plot.caption = element_text(color = "grey40", size = rel(0.8), hjust = 0),
+        plot.caption.position = "plot", legend.position = "bottom",
+        legend.direction = "vertical", panel.grid.minor = element_blank())
+dir.create(here("03_Output", "Figures"), recursive = TRUE, showWarnings = FALSE)
+ggsave(here("03_Output", "Figures", "fig_curvas_f1_finalistas.pdf"), fig_curvas, width = 8, height = 4.5)
+message("Figura guardada: ", here("03_Output", "Figures", "fig_curvas_f1_finalistas.pdf"))

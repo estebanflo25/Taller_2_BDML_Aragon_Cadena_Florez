@@ -297,3 +297,52 @@ fun_write_submission(hog_test$id, prob_test,
                      .dir_root = dir_root)
 
 fun_paso("Listo")
+
+# ------------------------------------------------------------------------------
+# 6. Figuras para los slides (deck best_equipo_01)
+# ------------------------------------------------------------------------------
+# 6.1 fig_f1_umbral_mejor: precisión, recall y F1 del ensamble final según el
+# umbral. Es la figura de la sección de política: mover el umbral hacia abajo
+# reduce la subcobertura (más recall) a costa de más filtraciones (menos
+# precisión), y viceversa. La línea vertical es el umbral elegido (máximo F1).
+curva_larga <- curva |>
+  filter(between(threshold, 0.10, 0.80)) |>
+  pivot_longer(c(precision, recall, F1), names_to = "metrica", values_to = "valor") |>
+  mutate(metrica = factor(metrica, levels = c("precision", "recall", "F1"),
+                          labels = c("Precisión (1 - filtración)", "Recall (1 - subcobertura)", "F1")))
+
+fig_umbral <- ggplot(curva_larga, aes(x = threshold, y = valor, color = metrica)) +
+  geom_line(linewidth = 1) +
+  geom_vline(xintercept = best$threshold, linetype = "dashed", color = "grey40") +
+  annotate("label", x = best$threshold, y = 0.55, size = 3.2,
+           label = sprintf("Umbral elegido: %.2f\nPrecisión %.1f%% · Recall %.1f%%",
+                           best$threshold, 100 * best$precision, 100 * best$recall)) +
+  scale_color_manual(values = c("#0072B2", "#D55E00", "grey20")) +
+  scale_y_continuous(labels = percent, limits = c(0.5, 1)) +
+  labs(title    = "Cada umbral es una decisión de política",
+       subtitle = "Precisión, recall y F1 del modelo final según el umbral de clasificación (predicciones fuera de muestra)",
+       x = "Umbral de probabilidad para clasificar un hogar como pobre", y = NULL,
+       caption  = "Filtración: hogares no pobres que reciben el programa. Subcobertura: hogares pobres que quedan por fuera.") +
+  theme_taller()
+fun_save_fig(fig_umbral, "fig_f1_umbral_mejor", .dir_root = dir_root)
+
+# 6.2 fig_sigma_posicion: incertidumbre promedio del ingreso predicho (sigma)
+# según la posición ocupacional del jefe. Muestra qué aprende el componente de
+# incertidumbre: el ingreso de un asalariado formal se predice con más
+# precisión que el de un cuenta propia o un hogar sin ocupados.
+sigma_pos <- tibble(posicion = hog_train$cat_head_posicion, sigma = mejor_v$sigma$oof) |>
+  group_by(posicion) |>
+  summarize(hogares = n(), sigma = mean(sigma), .groups = "drop") |>
+  filter(hogares >= 500) |>
+  mutate(posicion = fct_reorder(str_to_sentence(str_replace_all(posicion, "_", " ")), sigma))
+
+fig_sigma <- ggplot(sigma_pos, aes(x = sigma, y = posicion)) +
+  geom_col(fill = "#0072B2", width = 0.7) +
+  geom_text(aes(label = sprintf("%.2f", sigma)), hjust = -0.2, size = 3.5) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.15))) +
+  labs(title    = "¿Dónde es más difícil predecir el ingreso?",
+       subtitle = "Error absoluto esperado del ingreso predicho (sigma, en log) según la posición ocupacional del jefe",
+       x = "Sigma promedio (fuera de muestra)", y = NULL,
+       caption  = "Se muestran posiciones con al menos 500 hogares. Un sigma alto hace que el modelo sea más cauto cerca de la línea.") +
+  theme_taller()
+fun_save_fig(fig_sigma, "fig_sigma_posicion", .dir_root = dir_root)
