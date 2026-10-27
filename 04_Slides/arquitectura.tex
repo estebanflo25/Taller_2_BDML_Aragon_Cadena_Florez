@@ -4,12 +4,12 @@
   caja/.style={draw=#1, fill=#1!10, rounded corners=3pt, align=center, minimum height=8mm, inner sep=3pt, line width=0.7pt},
   caja/.default=azul, flecha/.style={->, line width=0.7pt, color=gris}]
   % Personas
-  \node[caja=naranja, text width=24mm] (per) {\textbf{541 mil personas}\\variables propias\\+ de su hogar};
-  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=9mm] (m17) {LightGBM: ingreso total};
-  \node[caja=naranja, text width=27mm, right=8mm of per] (m20) {LightGBM: + columnas\\crudas y pesos};
-  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=-9mm] (m22) {5 LightGBM: uno por\\componente del ingreso};
+  \node[caja=naranja, text width=24mm] (per) {\textbf{541 mil personas}\\variables propias\\y de su hogar};
+  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=9mm] (m17) {Ingreso A:\\ingreso total};
+  \node[caja=naranja, text width=27mm, right=8mm of per] (m20) {Ingreso B: respuestas\\originales de la encuesta};
+  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=-9mm] (m22) {Ingreso C: un modelo\\por fuente, sumadas};
   \node[caja=naranja, text width=22mm, right=7mm of m20] (suma) {Suma por hogar\\y promedio: $\hat y$};
-  \node[caja=naranja, text width=28mm, right=7mm of suma] (z) {$z = \hat y - g$\\$g$: brecha exacta del DANE\\$\sigma$: error esperado};
+  \node[caja=naranja, text width=28mm, right=7mm of suma] (z) {Índice $z = \hat y - g$\\$g$: brecha del hogar\\$\sigma$: incertidumbre};
   \node[caja=naranja, text width=20mm, below=6mm of z] (logit) {Logit en\\$z,\ z/\sigma,\ \log\sigma$};
   % Hogar
   \node[caja=azul, text width=24mm, below=17mm of per] (hog) {\textbf{165 mil hogares}\\85 variables};

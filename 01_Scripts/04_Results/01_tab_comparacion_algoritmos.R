@@ -45,12 +45,12 @@ mejor <- leer("ensamble_sigma.rds")$resumen
 algoritmos <- tribble(
   ~algoritmo,      ~especificacion,                                                     ~res,  ~archivo,
   "LPM",           "MCO con todas las variables",                                       lpm,   "LPM_umbral_0_37.csv",
-  "Logit",         "Todas las variables menos 8 redundantes",                           logit, "logit_umbral_0_37.csv",
-  "Elastic Net",   "$\\alpha = 0.9$, $\\lambda = 0.0003$",                              en,    "EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv",
-  "CART",          "$cp = 0.00013$ (420 hojas)",                                        cart,  "CART_cp_0_00013_umbral_0_3.csv",
-  "Random Forest", "mtry = 65, hoja mín. 10, 300 árboles",                              rf,    "RF_mtry_65_minnode_10_ntree_300_umbral_0_37.csv",
-  "Boosting",      "XGBoost: prof. 6, $\\eta = 0.05$, 800 árboles",                     xgb,   "XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv",
-  "Mejor modelo",  "0.3 XGBoost + 0.7 ingreso de personas (LightGBM) con $\\sigma$",    mejor, "ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv"
+  "Logit",         "85 variables menos 8 redundantes",                           logit, "logit_umbral_0_37.csv",
+  "Elastic Net",   "Mezcla L1/L2 $\\alpha = 0.9$, penalización $\\lambda = 0.0003$",                              en,    "EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv",
+  "CART",          "Un árbol podado a 420 hojas",                                        cart,  "CART_cp_0_00013_umbral_0_3.csv",
+  "Random Forest", "300 árboles, 65 variables candidatas por corte",                              rf,    "RF_mtry_65_minnode_10_ntree_300_umbral_0_37.csv",
+  "Boosting",      "XGBoost: 800 árboles de profundidad 6",                     xgb,   "XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv",
+  "Mejor modelo",  "0.3 XGBoost + 0.7 índice de ingreso de las personas",    mejor, "ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv"
 ) |>
   mutate(umbral    = map_dbl(res, \(r) r$umbral),
          precision = map_dbl(res, \(r) r$precision),

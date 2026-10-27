@@ -30,7 +30,7 @@ Los 21 envíos del equipo, con su F1 de validación cruzada y sus puntajes públ
 Un clasificador cuyo predictor principal es un **índice de ingreso construido desde las personas**:
 
 1. **Regla del DANE.** En train, un hogar es pobre si y solo si $S < G$, donde $S = \sum_{j \in UG} \text{Ingtot}_j$ es el ingreso de las personas de la unidad de gasto y $G = L_p \times N_{ug} - R$ es la brecha (línea de pobreza por personas, menos el arriendo imputado). La regla reproduce el 99.99 % de la pobreza. $G$ se puede calcular en test; solo hay que predecir $S$.
-2. **Ingreso de cada persona.** Tres LightGBM con pérdida Tweedie (1.5) sobre las 541 mil personas de la unidad de gasto: ingreso total (script 17), ingreso con columnas crudas de la encuesta y más peso cerca de la línea (20), y un modelo por componente del ingreso (trabajo, pensiones, ayudas, capital, desocupados) que luego se suman (22).
+2. **Ingreso de cada persona.** Tres LightGBM con pérdida Tweedie (1.5) sobre las 541 mil personas de la unidad de gasto: el ingreso A predice el ingreso total (script 17); el ingreso B agrega las respuestas originales de la encuesta y da más peso a los hogares cerca de la línea (20); el ingreso C entrena un modelo por fuente de ingreso (trabajo, pensiones, ayudas, arriendos e intereses, desocupados) y las suma (22).
 3. **Índice e incertidumbre.** Se suma por hogar, se promedian los tres modelos y se calcula $z = \log \hat S - \log G$. Un LightGBM estima el error esperado $\sigma$ de cada hogar, y un logit con ajuste cruzado convierte $z$, $z/\sigma$ y $\log\sigma$ en probabilidad (23).
 4. **Ensamble.** $P = 0.3\,P_{\text{XGBoost}} + 0.7\,P_{\text{ingreso}}$; pobre si $P \geq 0.40$, el umbral que maximiza el F1 fuera de muestra.
 
@@ -46,7 +46,7 @@ Taller_2_BDML_Aragon_Cadena_Florez/
 │   ├── 01_Data/                 # 01-04 base de hogares; 05-06 bases de ingreso (solo objetivo)
 │   ├── 02_EDA/                  # 01-11 tablas y figuras descriptivas
 │   ├── 03_Models/               # 01-31 modelos, ensambles y envíos a Kaggle
-│   └── 04_Results/              # 01-11 tablas y figuras de las presentaciones
+│   └── 04_Results/              # 01-15 tablas y figuras de las presentaciones
 ├── 02_Data/
 │   ├── Raw/                     # .rds de Kaggle (los CSV de más de 100 MB no se suben)
 │   └── Processed/               # db_{train,test}, db_ingreso_*, db_personas_*, componentes
@@ -122,6 +122,10 @@ Todos los modelos usan `fun_folds()` (5 folds estratificados, semilla 2026) y el
 | `09_fig_parsimonia.R` | `fig_parsimonia.pdf`: F1 con encuestas cortas |
 | `10_fig_tuning.R` | `fig_tuning.pdf`: búsqueda de hiperparámetros |
 | `11_tab_mejor_modelo.R` | `tab_piezas.tex`, `tab_tradeoffs.tex` |
+| `12_tab_desbalance.R` | `tab_desbalance.tex`: F1 de cada algoritmo sin corrección, con umbral óptimo y con up-sampling |
+| `13_tab_cercanos.R` | `tab_cercanos.tex`: los modelos más cercanos al mejor en Kaggle y la información que usa cada uno |
+| `14_fig_proceso.R` | `fig_proceso.pdf`: los 21 envíos en orden y el mejor F1 alcanzado en cada etapa |
+| `15_tab_cercanos_detalle.R` | `tab_cercanos_detalle.tex`: el mejor modelo frente a los dos que le siguen, hogar por hogar |
 
 ## Hallazgos principales
 

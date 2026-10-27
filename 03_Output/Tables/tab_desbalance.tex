@@ -1,0 +1,19 @@
+
+\begin{threeparttable}
+\begin{tabular}[t]{lcccc}
+\toprule
+Algoritmo & Sin corrección (umbral 0.5) & Umbral óptimo & Ganancia & Up-sampling\\
+\midrule
+Logit & 0.721 & 0.739 (0.37) & +0.018 & ---\\
+Elastic Net & 0.719 & 0.738 (0.36) & +0.019 & ---\\
+CART & 0.695 & 0.704 (0.30) & +0.008 & 0.702 (0.74)\\
+Random Forest & 0.720 & 0.741 (0.37) & +0.020 & ---\\
+Boosting (XGBoost) & 0.749 & 0.760 (0.36) & +0.011 & ---\\
+\midrule
+Mejor modelo & 0.767 & 0.776 (0.40) & +0.009 & ---\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item F1 fuera de muestra (validación cruzada). Entre paréntesis, el umbral. Up-sampling: hogares pobres duplicados hasta 50/50 en el entrenamiento.
+\end{tablenotes}
+\end{threeparttable}

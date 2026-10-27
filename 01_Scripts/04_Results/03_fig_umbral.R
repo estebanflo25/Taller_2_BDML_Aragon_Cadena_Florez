@@ -59,10 +59,10 @@ fun_save_fig(fig1, "fig_curvas_umbral")
 # ------------------------------------------------------------------------------
 modelos <- c("Logit" = "logit_cv.rds", "Elastic Net" = "elastic_net_cv.rds",
              "LPM parsimonioso" = "lpm_cv.rds",              "Random Forest (mtry 65)" = "rf_mtry_alto.rds",
-             "XGBoost (11)" = "xgb_aleatoriedad.rds", "XGBoost de ingreso" = "xgb_ingreso.rds",
-             "Personas XGB (16)" = "xgb_ingreso_personas.rds",
-             "Personas LGB (17)" = "lgb_ingreso_personas.rds", "Personas crudas (20)" = "lgb_personas_crudas_pesos.rds",
-             "Componentes (22)" = "lgb_personas_componentes.rds",
+             "Boosting (XGBoost)" = "xgb_aleatoriedad.rds", "XGBoost: ingreso del hogar" = "xgb_ingreso.rds",
+             "XGBoost: ingreso de personas" = "xgb_ingreso_personas.rds",
+             "Ingreso A (total)" = "lgb_ingreso_personas.rds", "Ingreso B (respuestas originales)" = "lgb_personas_crudas_pesos.rds",
+             "Ingreso C (por fuentes)" = "lgb_personas_componentes.rds",
              "Mejor modelo" = "ensamble_sigma.rds")
 puntos <- imap_dfr(modelos, \(f, n) leer(f)$curva |> slice_max(F1, n = 1, with_ties = FALSE) |>
                      mutate(modelo = n)) |>

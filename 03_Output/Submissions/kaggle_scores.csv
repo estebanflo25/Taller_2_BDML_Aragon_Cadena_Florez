@@ -17,6 +17,6 @@ fecha,archivo,modelo,algoritmo,umbral,f1_cv,f1_publico,f1_privado,enviado_por,se
 2026-10-19,ENS_clas_0_4_ing_0_pxgb_0_plgb_0_6_rf_0_umbral_0_38.csv,Clasificación + LightGBM de personas,Boosting,0.38,0.7723,0.77,0.77,Cadena,0
 2026-10-19,ENS_clas_0_3_personas_17_20_sigma_umbral_0_4.csv,Clasificación + personas (17 + 20) con sigma,Boosting,0.40,0.7755,0.77,0.78,Cadena,0
 2026-10-20,ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv,Clasificación + personas (17 + 20 + 22) con sigma,Boosting,0.40,0.7764,0.77,0.77,Cadena,1
-2026-10-24,PROM_LGBM_XGB_umbral_0_38.csv,Promedio LightGBM monótono + XGBoost con brecha,Boosting,0.38,0.7641,0.76,0.76,Flórez,0
-2026-10-24,ENS_lgb_monotono_0_2_ingreso_sigma_0_8_umbral_0_41.csv,LightGBM monótono + ingreso con sigma,Boosting,0.41,0.7772,0.77,0.77,Flórez,0
+2026-10-24,PROM_LGBM_XGB_umbral_0_38.csv,Promedio LightGBM monótono + XGBoost con brecha,Boosting,0.38,0.7628,0.76,0.76,Flórez,0
+2026-10-24,ENS_lgb_monotono_0_2_ingreso_sigma_0_8_umbral_0_41.csv,LightGBM monótono + ingreso con sigma,Boosting,0.41,0.7762,0.77,0.77,Flórez,0
 2026-10-24,XGB_LGB_wxgb_0_9_umbral_0_38.csv,XGBoost clasificación + LightGBM de ingreso,Boosting,0.38,0.7612,0.76,0.76,Aragón,0

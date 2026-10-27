@@ -32,27 +32,27 @@ p_en <- ggplot(en, aes(lambda, F_opt, color = factor(alpha))) +
   geom_line(linewidth = 0.9) +
   scale_x_log10() + coord_cartesian(ylim = lim) +
   scale_color_manual(values = c("#BBBBBB", "#56B4E9", "#0072B2", "#000000"), name = expression(alpha)) +
-  labs(x = expression(lambda ~ "(escala log)"), y = "F1 (umbral óptimo)", title = "Elastic Net: 220 combinaciones") +
+  labs(x = expression("Penalización" ~ lambda ~ "(escala log)"), y = "F1 (umbral óptimo)", title = "Elastic Net: 11 mezclas x 20 penalizaciones") +
   tema + theme(legend.position = c(0.25, 0.25), legend.title = element_text())
 
 cart <- leer("cart_cv.rds")$cart$tuning
 p_cart <- ggplot(cart, aes(cp, F_opt)) +
   geom_line(color = pal_algoritmos[["CART"]], linewidth = 0.9) + geom_point(color = pal_algoritmos[["CART"]], size = 1.5) +
   scale_x_log10() + coord_cartesian(ylim = lim) +
-  labs(x = "cp (escala log)", y = NULL, title = "CART: 30 valores de cp") + tema
+  labs(x = "Complejidad cp (escala log; más alto = más poda)", y = NULL, title = "CART: 30 niveles de poda") + tema
 
 rf <- bind_rows(leer("rf_cv.rds")$tuning |> select(mtry, min_node, F1),
                 leer("rf_mtry_alto.rds")$tabla |> select(mtry, min_node, F1)) |> distinct()
 p_rf <- ggplot(rf, aes(mtry, F1, color = factor(min_node))) +
   geom_line(linewidth = 0.9) + geom_point(size = 2) +
-  scale_color_manual(values = c("10" = "#009E73", "20" = "#56B4E9", "50" = "#999999"), name = "Hoja mín.") +
+  scale_color_manual(values = c("10" = "#009E73", "20" = "#56B4E9", "50" = "#999999"), name = "Hogares mín.\npor hoja") +
   coord_cartesian(ylim = lim) +
-  labs(x = "mtry (variables por corte)", y = "F1 (umbral óptimo)", title = "Random Forest: mtry y hoja mínima") +
+  labs(x = "Variables candidatas en cada corte", y = "F1 (umbral óptimo)", title = "Random Forest: variables por corte y tamaño de hoja") +
   tema + theme(legend.position = c(0.7, 0.25), legend.title = element_text())
 
-xgb <- bind_rows(leer("xgb_cv.rds")$tuning |> mutate(etapa = "1. Profundidad y eta"),
-                 leer("xgb_estructura.rds")$tuning |> mutate(etapa = "2. Estructura"),
-                 leer("xgb_aleatoriedad.rds")$tuning |> mutate(etapa = "3. Aleatoriedad"))
+xgb <- bind_rows(leer("xgb_cv.rds")$tuning |> mutate(etapa = "1. Profundidad,\ntasa y árboles"),
+                 leer("xgb_estructura.rds")$tuning |> mutate(etapa = "2. Tamaño mínimo\nde hoja"),
+                 leer("xgb_aleatoriedad.rds")$tuning |> mutate(etapa = "3. Muestreo de\nfilas y columnas"))
 p_xgb <- ggplot(xgb, aes(etapa, F1)) +
   geom_jitter(width = 0.15, height = 0, color = pal_algoritmos[["Boosting"]], alpha = 0.7, size = 1.8) +
   coord_cartesian(ylim = lim) +

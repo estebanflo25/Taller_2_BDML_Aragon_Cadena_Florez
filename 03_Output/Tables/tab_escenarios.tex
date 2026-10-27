@@ -2,7 +2,7 @@
 \begin{threeparttable}
 \begin{tabular}[t]{lccccc}
 \toprule
-Escenario & Umbral & Hogares marcados & Subcobertura & Fuga & F1\\
+Escenario & Umbral & Hogares marcados & Error de exclusión & Error de inclusión & F1\\
 \midrule
 Prioriza cobertura & 0.23 & 28 \% & 10 \% & 35 \% & 0.753\\
 \textbf{Maximiza el F1 (Kaggle)} & \textbf{0.40} & \textbf{22 \%} & \textbf{19 \%} & \textbf{25 \%} & \textbf{0.776}\\
@@ -10,6 +10,6 @@ Prioriza presupuesto & 0.61 & 15 \% & 35 \% & 15 \% & 0.737\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}
-\item Subcobertura: \% de los pobres que el modelo deja por fuera. Fuga: \% de los marcados que no son pobres. 20 \% de los hogares son pobres.
+\item Exclusión: \% de los hogares pobres que el modelo deja por fuera. Inclusión: \% de los hogares marcados como pobres que no lo son.
 \end{tablenotes}
 \end{threeparttable}

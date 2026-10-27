@@ -31,7 +31,8 @@ peldanos <- tribble(
   "XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv", "Boosting (XGBoost)",                   "Algoritmo",
   "ENS_ing_0_4_clas_0_6_umbral_0_37.csv",                                     "+ ingreso del hogar",                  "Información",
   "ENS_clas_0_4_ing_0_pxgb_0_plgb_0_6_rf_0_umbral_0_38.csv",                  "+ ingreso de cada persona",            "Información",
-  "ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv",                      "+ componentes e incertidumbre (mejor)", "Información"
+  "ENS_clas_0_3_personas_17_20_sigma_umbral_0_4.csv",                         "+ respuestas originales e incertidumbre", "Información",
+  "ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv",                      "+ ingreso por fuentes (mejor modelo)", "Información"
 ) |>
   left_join(kaggle, by = "archivo") |>
   mutate(etiqueta = fct_reorder(etiqueta, f1_cv))
@@ -45,7 +46,7 @@ fig <- ggplot(peldanos, aes(y = etiqueta)) +
   geom_segment(aes(x = 0.69, xend = f1_cv, yend = etiqueta, color = tipo), linewidth = 1.2) +
   geom_point(data = datos_largo, aes(x = F1, shape = medida, fill = medida), size = 3,
              color = "grey20", stroke = 0.4) +
-  geom_text(aes(x = f1_cv, label = sprintf("%.3f", f1_cv)), nudge_x = 0.006, size = 3.4,
+  geom_text(aes(x = f1_cv, label = sprintf("%.3f", f1_cv)), nudge_x = 0.009, size = 3.4,
             hjust = 0, color = "grey15") +
   scale_color_manual(values = c("Algoritmo" = "#0072B2", "Información" = "#D55E00"),
                      labels = c("Algoritmo" = "Algoritmo (mismas variables)",

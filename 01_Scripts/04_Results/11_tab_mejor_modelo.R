@@ -33,13 +33,13 @@ comp <- sig$comparacion |> filter(version == "17 + 20 + 22 | con sigma")
 piezas <- tribble(
   ~Pieza, ~Unidad, ~Algoritmo, ~`Hiperparámetros`, ~F1,
   "Clasificador (peso 0.3)", "Hogar", "XGBoost",
-  sprintf("prof. %d, hoja mín. %d, $\\eta$ %.2f, %d árboles", r$clas$max_depth, r$clas$min_child_weight, r$clas$eta, r$clas$nrounds),
+  sprintf("%d árboles de profundidad %d", r$clas$nrounds, r$clas$max_depth),
   r$clas$F1,
-  "Ingreso total (17)", "Persona", "LightGBM Tweedie", sprintf("63 hojas, $\\eta$ 0.05, %d árboles", r$p17$nrounds), r$p17$F1,
-  "Ingreso + crudas + pesos (20)", "Persona", "LightGBM Tweedie", sprintf("63 hojas, $\\eta$ 0.1, %d árboles", r$p20$nrounds), r$p20$F1,
-  "Ingreso por componente (22)", "Persona", "5 LightGBM Tweedie", sprintf("63 hojas, $\\eta$ 0.1, %d árboles c/u", r$p22$nrounds), r$p22$F1,
-  "Ingreso promedio + $\\sigma$ (peso 0.7)", "Hogar", "LightGBM L1 + logit", "$\\sigma$: 31 hojas, 400 árboles", comp$F1_ingreso_solo,
-  "\\textbf{Mejor modelo}", "Hogar", "Ensamble", sprintf("0.3 / 0.7, umbral %.2f", sig$resumen$umbral), sig$resumen$F1
+  "Ingreso A: total", "Persona", "LightGBM Tweedie", sprintf("%d árboles de 63 hojas", r$p17$nrounds), r$p17$F1,
+  "Ingreso B: respuestas originales", "Persona", "LightGBM Tweedie", sprintf("%d árboles; más peso cerca de la línea", r$p20$nrounds), r$p20$F1,
+  "Ingreso C: por fuentes", "Persona", "5 LightGBM Tweedie", sprintf("5 modelos de %d árboles", r$p22$nrounds), r$p22$F1,
+  "Índice de ingreso (peso 0.7)", "Hogar", "Promedio + logit", "$z$, $z/\\sigma$, $\\log\\sigma$", comp$F1_ingreso_solo,
+  "\\textbf{Mejor modelo}", "Hogar", "Ensamble", sprintf("pesos 0.3 / 0.7, umbral %.2f", sig$resumen$umbral), sig$resumen$F1
 ) |>
   mutate(F1 = sprintf("%.3f", F1))
 
@@ -47,7 +47,7 @@ piezas |>
   kbl(format = "latex", booktabs = TRUE, linesep = "", escape = FALSE, align = c("l", "l", "l", "l", "c")) |>
   row_spec(5, hline_after = TRUE) |>
   row_spec(6, bold = TRUE) |>
-  footnote(general = "F1 de validación cruzada (5 folds por hogar; las personas heredan el fold de su hogar). Tweedie 1.5 sobre el ingreso en millones; el ingreso de cada persona se suma por hogar.",
+  footnote(general = "F1 de validación cruzada con 5 grupos de hogares (cada persona queda en el grupo de su hogar). Pérdida Tweedie: apta para ingresos con muchos ceros y una cola larga.",
            general_title = "", threeparttable = TRUE) |>
   fun_save_tab("tab_piezas")
 
@@ -70,7 +70,7 @@ tradeoffs <- tribble(
   "LightGBM con 10 variables", top10, "---",
   "Media: 10 variables", "Hogar (10 variables)", "1 min",
   "Mejor modelo", sig$resumen$F1, sprintf("%.2f", priv("ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv")),
-  "Baja: 7 modelos encadenados", "Hogar + ingresos de cada persona", "2 horas"
+  "Baja: 9 modelos de árboles y un logit", "Hogar + ingresos de cada persona", "2 horas"
 ) |>
   mutate(F1 = sprintf("%.3f", F1))
 

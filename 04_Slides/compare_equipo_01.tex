@@ -55,7 +55,7 @@
 \item \textbf{LPM y Logit:} efectos aditivos (MCO y máxima verosimilitud).
 \item \textbf{Elastic Net:} logit con penalización $L_1 + L_2$.
 \item \textbf{CART:} un árbol podado por $cp$.
-\item \textbf{Random Forest:} promedio de 300 árboles profundos (bagging + mtry).
+\item \textbf{Random Forest:} promedio de 300 árboles profundos, cada uno con una muestra distinta de hogares y de variables.
 \item \textbf{Boosting:} árboles poco profundos en secuencia, cada uno corrige al anterior.
 \end{itemize}
 \end{block}
@@ -84,7 +84,7 @@
 \small
 \begin{itemize}
 \item \textbf{Elastic Net:} el óptimo es casi sin penalización ($\lambda \approx 0.0003$): regularizar no ayuda con 165 mil hogares.
-\item \textbf{RF:} lo que importa es \alert{mtry}; árboles profundos (hoja 10).
+\item \textbf{RF:} lo que importa es cuántas \alert{variables candidatas} ve cada corte (13 a 65); árboles profundos.
 \item \textbf{XGBoost:} 78 configuraciones entre 0.757 y 0.760: una meseta.
 \end{itemize}
 \end{column}
@@ -103,7 +103,7 @@
 \end{column}
 \begin{column}{0.32\textwidth}
 \begin{block}{Random Forest (0.741)}
-\small Capta interacciones, pero promediar árboles profundos reduce \alert{varianza}, no sesgo. Lo que más pesa es mtry.
+\small Capta interacciones, pero promediar árboles profundos reduce \alert{varianza}, no sesgo. Lo que más pesa es cuántas variables ve cada corte.
 \end{block}
 \end{column}
 \begin{column}{0.32\textwidth}
@@ -135,22 +135,56 @@
 \end{columns}
 \end{frame}
 
-\begin{frame}{El desbalance se maneja igual para todos: con el umbral}
+\begin{frame}{El desbalance: tres estrategias, el umbral gana}
+\centering
+\tablar{0.68\linewidth}{tab_desbalance}
+\par\vspace{0.2em}
 \begin{columns}[c]
-\begin{column}{0.5\textwidth}
-\includegraphics[width=\linewidth]{fig_curvas_umbral.pdf}
+\begin{column}{0.48\textwidth}
+\centering\includegraphics[height=0.44\textheight]{fig_curvas_umbral.pdf}
 \end{column}
-\begin{column}{0.5\textwidth}
-\includegraphics[width=\linewidth]{fig_umbral_teoria.pdf}
+\begin{column}{0.48\textwidth}
+\small
+\begin{itemize}
+\item Bajar el umbral de 0.5 al óptimo sube el F1 entre 0.01 y 0.02 en todos los algoritmos.
+\item Duplicar pobres (up-sampling) no agregó nada: solo cambió la escala de la probabilidad.
+\end{itemize}
 \end{column}
 \end{columns}
-\vspace{0.3em}
-{\small Con umbral 0.5 el logit pierde 0.02 y el boosting 0.01. El up-sampling en CART no cambió el F1 (0.702 frente a 0.704). Con probabilidades calibradas, el umbral óptimo es $F1^*/2$: el mejor modelo sube su umbral a 0.40.}
 \end{frame}
 
 \begin{frame}{Del mejor algoritmo al mejor modelo: la información}
 \centering
 \includegraphics[height=0.86\textheight]{fig_escalera.pdf}
+\end{frame}
+
+\begin{frame}{Los modelos más cercanos: los que llegan a 0.77 usan el ingreso de cada persona}
+\centering
+\tablar{0.95\linewidth}{tab_cercanos}
+\par\vspace{0.6em}
+{\small Todos son de boosting. Lo que separa 0.77 de 0.76 no es el algoritmo sino la \alert{información}: sin el ingreso de cada persona, ningún modelo pasa de 0.76.}
+\end{frame}
+
+\begin{frame}{Comparación detallada: el mejor frente a los dos que le siguen}
+\centering
+\tablar{\linewidth}{tab_cercanos_detalle}
+\par\vspace{0.6em}\raggedright
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\small
+\begin{itemize}
+\item Las diferencias de F1 (0.0009 y 0.0001) son \alert{menores que su error estándar}: los tres están empatados.
+\item Clasifican distinto a menos del \alert{1 \%} de los hogares; sus probabilidades tienen correlación de 0.999.
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\small
+\begin{itemize}
+\item El de Flórez cambia el balance: \alert{más precisión} (0.754) y menos recall (0.800), con el mismo F1.
+\item El 0.78 del privado de la versión A + B es ruido del mismo tamaño: elegimos por validación cruzada.
+\end{itemize}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{La validación cruzada predijo a Kaggle}
@@ -163,7 +197,7 @@
 \begin{itemize}
 \item Correlación CV--privado: \alert{0.99} en 21 envíos.
 \item Decidimos con el CV, no con el público (ruido de $\pm 0.006$ con 13 mil hogares).
-\item El ensamble 17 + 20 con $\sigma$ sacó 0.78 en el privado y el elegido 0.77, con CV 0.7755 frente a 0.7764: es \alert{ruido}, no una razón para elegir por el público.
+\item El ensamble con dos modelos de ingreso sacó 0.78 en el privado y el elegido (tres) 0.77, con CV de 0.7755 frente a 0.7764: es \alert{ruido}.
 \end{itemize}
 \end{column}
 \end{columns}
@@ -179,7 +213,7 @@
 \par\vspace{1.4em}
 \begin{columns}[T]
 \begin{column}{0.48\textwidth}
-\textbf{Complejidad frente a desempeño.} De logit a boosting: +0.02 sin perder variables. Del boosting al mejor modelo: +0.016, pero con siete modelos y el módulo de ingresos.
+\textbf{Complejidad frente a desempeño.} De logit a boosting: +0.02 sin perder variables. Del boosting al mejor modelo: +0.016, pero con nueve modelos de árboles y el módulo de ingresos.
 \end{column}
 \begin{column}{0.48\textwidth}
 \textbf{Recomendación.} Para focalizar: \alert{boosting a nivel hogar} con preguntas verificables y un umbral elegido por el costo de los errores. El mejor de Kaggle no es necesariamente el mejor instrumento.

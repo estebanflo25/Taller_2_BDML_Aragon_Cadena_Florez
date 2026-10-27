@@ -23,13 +23,13 @@
 \includegraphics[width=\linewidth]{fig_desbalance.pdf}
 \end{column}
 \begin{column}{0.43\textwidth}
-\begin{block}{La regla del DANE, reconstruida en train}
+\begin{block}{Regla oficial del DANE, reescrita por nosotros}
 \centering
 $\text{Pobre} = 1 \iff S < G$
 \par\vspace{0.3em}\raggedright
 {\small $S = \sum_{j \in UG} \text{Ingtot}_j$: ingreso de las personas\\
 $G = L_p \times N_{ug} - R$: brecha ($R$: arriendo imputado)\\
-Reproduce el \alert{99.99 \%} de la pobreza de train.}
+Reconstruida con los datos: reproduce el \alert{99.99 \%} de la pobreza de train.}
 \end{block}
 \vspace{0.3em}
 \small
@@ -80,7 +80,25 @@ Reproduce el \alert{99.99 \%} de la pobreza de train.}
 % ------------------------------------------------------------------------------
 \section{El mejor modelo}
 
-\begin{frame}{Arquitectura y entrenamiento: siete modelos, una probabilidad}
+\begin{frame}{Cómo llegamos aquí: 21 envíos, cuatro etapas}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_proceso.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\textbf{Reglas que mantuvimos en todo el proceso}
+\begin{itemize}\setlength\itemsep{0.25em}
+\item Los mismos 5 grupos de validación para todos los modelos.
+\item Hiperparámetros por búsqueda en grilla con validación cruzada.
+\item Umbral: el que maximiza el F1 fuera de muestra.
+\item Decidimos con la validación cruzada, no con el puntaje público.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Arquitectura y entrenamiento: del ingreso de cada persona a una probabilidad}
 \centering
 \resizebox{0.72\linewidth}{!}{\input{arquitectura.tex}}
 \par\vspace{0.4em}
@@ -92,61 +110,17 @@ Reproduce el \alert{99.99 \%} de la pobreza de train.}
 \includegraphics[height=0.86\textheight]{fig_escalera.pdf}
 \end{frame}
 
-\begin{frame}{El índice de ingreso ya separa a pobres y no pobres}
-\begin{columns}[c]
-\begin{column}{0.66\textwidth}
-\includegraphics[width=\linewidth]{fig_z_separacion.pdf}
-\end{column}
-\begin{column}{0.32\textwidth}
-\small
-\[ z = \log \hat S - \log G \]
-\begin{itemize}
-\item Sin umbral ni calibración, la regla $z<0$ ya da F1 de 0.76.
-\item \textbf{Tweedie (1.5):} muchos ceros (niños, inactivos) y una cola larga; predice la \alert{media}, así que la suma por hogar no se sesga.
-\item El error se concentra cerca de $z = 0$: ahí decide la calibración.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{La incertidumbre por hogar: la misma $z$ no significa lo mismo}
+\begin{frame}{Del ingreso predicho a la probabilidad de ser pobre}
 \centering
-\includegraphics[height=0.72\textheight]{fig_sigma.pdf}
-
-\small El ingreso de un asalariado privado se predice con un error de 0.18 (en log); el de un patrón, con 0.33.
+\includegraphics[height=0.7\textheight]{fig_indice_ingreso.pdf}
+\par\vspace{0.1em}
+{\small $z$: distancia entre el ingreso predicho y la brecha. $\sigma$: el error que esperamos al predecir el ingreso de ese hogar (bajo para un asalariado, alto para un independiente).}
 \[\text{logit}\,P(\text{Pobre}) = b_0 + b_1 z + b_2 \tfrac{z}{\sigma} + b_3 \log\sigma\]
 \end{frame}
 
-\begin{frame}{Importancia (I): el clasificador mira vivienda y trabajo formal}
-\begin{columns}[c]
-\begin{column}{0.66\textwidth}
-\includegraphics[width=\linewidth]{fig_importancia_clasificador.pdf}
-\end{column}
-\begin{column}{0.32\textwidth}
-\small
-\begin{itemize}
-\item \textbf{Arriendo por persona}: aproxima el ingreso permanente y el estrato.
-\item \textbf{Horas por persona} y \textbf{cotizantes}: cuánto trabajo hay y qué tan formal es.
-\item \textbf{Arriendos o pensiones}: ingresos que no dependen del empleo.
-\end{itemize}
-\end{column}
-\end{columns}
-\end{frame}
-
-\begin{frame}{Importancia (II): cada fuente de ingreso tiene su predictor}
-\begin{columns}[c]
-\begin{column}{0.66\textwidth}
-\includegraphics[width=\linewidth]{fig_importancia_componentes.pdf}
-\end{column}
-\begin{column}{0.32\textwidth}
-\small
-\begin{itemize}
-\item \textbf{Trabajo:} la posición ocupacional (asalariado, cuenta propia, patrón) y la cotización a pensión.
-\item \textbf{Pensiones:} una sola pregunta (``¿recibe pensión?'') explica el 96 \%.
-\item Separar las fuentes evita que el modelo de trabajo ``promedie'' a los pensionados.
-\end{itemize}
-\end{column}
-\end{columns}
+\begin{frame}{Importancia: vivienda y trabajo formal en el hogar; posición ocupacional en las personas}
+\centering
+\includegraphics[height=0.86\textheight]{fig_importancia_mejor.pdf}
 \end{frame}
 
 \begin{frame}{Diagnóstico: los errores están cerca de la línea}
@@ -176,7 +150,7 @@ Reproduce el \alert{99.99 \%} de la pobreza de train.}
 \small
 \begin{itemize}
 \item Con umbral 0.5 el mejor modelo pierde 0.01 de F1; el logit, 0.02.
-\item \textbf{Up-sampling} en el CART: F1 0.702 frente a 0.704 sin rebalanceo. Solo movió el umbral de 0.30 a 0.74.
+\item \textbf{Rebalancear} (duplicar pobres hasta 50/50) en el árbol: F1 0.702 frente a 0.704. Infla todas las probabilidades, pero el \alert{orden} de los hogares no cambia: el umbral óptimo solo pasó de 0.30 a 0.74.
 \item Elegir el umbral por F1 \alert{ya corrige} el desbalance.
 \end{itemize}
 \end{column}
@@ -186,7 +160,7 @@ Reproduce el \alert{99.99 \%} de la pobreza de train.}
 % ------------------------------------------------------------------------------
 \section{Implicaciones de política}
 
-\begin{frame}{El F1 elige un punto entre fuga y subcobertura}
+\begin{frame}{El F1 elige un punto entre errores de exclusión e inclusión}
 \begin{columns}[c]
 \begin{column}{0.55\textwidth}
 \includegraphics[width=\linewidth]{fig_fuga_subcobertura.pdf}
@@ -198,7 +172,7 @@ Reproduce el \alert{99.99 \%} de la pobreza de train.}
 \end{column}
 \end{columns}
 \vspace{0.2em}
-{\small Con el F1, \alert{1 de cada 5 pobres queda por fuera} y 1 de cada 4 beneficiarios no es pobre. Un programa de transferencias suele preferir cobertura: umbral 0.23.}
+{\small Con el F1, \alert{1 de cada 5 pobres queda por fuera} (exclusión) y 1 de cada 4 beneficiarios no es pobre (inclusión). Un programa de transferencias suele preferir cobertura: umbral 0.23.}
 \end{frame}
 
 \begin{frame}{¿Se puede usar con una encuesta corta?}
@@ -234,7 +208,7 @@ Con las mismas variables, el boosting le gana 0.02 al logit y al RF. El \alert{u
 \end{column}
 \begin{column}{0.32\textwidth}
 \begin{block}{3. Política}
-El F1 pesa igual fuga y subcobertura: un programa debe \alert{elegir su umbral}. Una encuesta corta y verificable cuesta unos 0.09 de F1.
+El F1 pesa igual los errores de exclusión e inclusión: un programa debe \alert{elegir su umbral}. Una encuesta corta y verificable cuesta unos 0.09 de F1.
 \end{block}
 \end{column}
 \end{columns}
