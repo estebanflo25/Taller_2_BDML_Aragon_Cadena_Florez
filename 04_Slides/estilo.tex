@@ -1,0 +1,51 @@
+% ==============================================================================
+% estilo.tex: formato común de los dos decks (best y compare)
+% Taller 2 - Predicting Poverty | MECA 4107 | Equipo 1: Aragón, Cadena, Flórez
+% Se compila con pdflatex. Las figuras y tablas salen de 01_Scripts/04_Results
+% y 01_Scripts/02_EDA (carpeta 03_Output): ningún número se escribe a mano
+% salvo los que también imprimen esos scripts.
+% ==============================================================================
+\usetheme[progressbar=frametitle, numbering=fraction, block=fill, sectionpage=none]{metropolis}
+\usepackage[spanish, es-noshorthands]{babel}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[sfdefault, scaled=.92]{FiraSans}
+\usepackage{booktabs, threeparttable, makecell, multirow, array, colortbl, xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning, arrows.meta, shapes.geometric, fit, calc}
+\graphicspath{{../03_Output/Figures/}}
+
+% Colores (los mismos de las figuras: paleta Okabe-Ito)
+\definecolor{azul}{HTML}{0072B2}
+\definecolor{naranja}{HTML}{D55E00}
+\definecolor{verde}{HTML}{009E73}
+\definecolor{rosa}{HTML}{CC79A7}
+\definecolor{gris}{HTML}{4D4D4D}
+\definecolor{fondo}{HTML}{F4F6F8}
+\definecolor{oscuro}{HTML}{1F2A3A}
+
+\setbeamercolor{frametitle}{bg=oscuro, fg=white}
+\setbeamercolor{progress bar}{fg=naranja, bg=oscuro!30}
+\setbeamercolor{title separator}{fg=naranja}
+\setbeamercolor{alerted text}{fg=naranja}
+\setbeamercolor{block title}{bg=oscuro!12, fg=oscuro}
+\setbeamercolor{block body}{bg=fondo}
+\setbeamercolor{normal text}{fg=gris}
+\setbeamerfont{frametitle}{size=\large}
+\setbeamerfont{footnote}{size=\tiny}
+
+% Tablas de kableExtra: tamaño compacto
+\newcommand{\tabla}[2][\footnotesize]{{#1\renewcommand{\arraystretch}{1.15}\input{../03_Output/Tables/#2.tex}}}
+% Tabla escalada a un ancho dado: \tablar{ancho}{archivo}
+\newcommand{\tablar}[2]{\resizebox{#1}{!}{\input{../03_Output/Tables/#2.tex}}}
+% Mensaje principal de la diapositiva (una línea, arriba)
+\newcommand{\mensaje}[1]{{\color{oscuro}\bfseries #1}\par\vspace{0.4em}}
+% Fuente pequeña al pie
+\newcommand{\fuente}[1]{\par\vfill{\tiny\color{gris!80} #1}}
+% Cifra grande
+\newcommand{\cifra}[2]{\begin{tabular}[t]{@{}c@{}}{\color{naranja}\fontsize{24}{26}\selectfont\bfseries #1}\\[0.1em]\scriptsize #2\end{tabular}}
+
+\title{Predecir la pobreza en Colombia}
+\author{Equipo 1: Aragón, Cadena y Flórez}
+\institute{MECA 4107 Big Data y Machine Learning para Economía Aplicada --- Universidad de los Andes}
+\date{Problem Set 2 \quad\textbullet\quad Octubre de 2026}

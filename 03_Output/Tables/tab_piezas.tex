@@ -1,0 +1,19 @@
+
+\begin{threeparttable}
+\begin{tabular}[t]{llllc}
+\toprule
+Pieza & Unidad & Algoritmo & Hiperparámetros & F1\\
+\midrule
+Clasificador (peso 0.3) & Hogar & XGBoost & prof. 6, hoja mín. 20, $\eta$ 0.05, 800 árboles & 0.760\\
+Ingreso total (17) & Persona & LightGBM Tweedie & 63 hojas, $\eta$ 0.05, 2200 árboles & 0.766\\
+Ingreso + crudas + pesos (20) & Persona & LightGBM Tweedie & 63 hojas, $\eta$ 0.1, 1000 árboles & 0.768\\
+Ingreso por componente (22) & Persona & 5 LightGBM Tweedie & 63 hojas, $\eta$ 0.1, 800 árboles c/u & 0.767\\
+Ingreso promedio + $\sigma$ (peso 0.7) & Hogar & LightGBM L1 + logit & $\sigma$: 31 hojas, 400 árboles & 0.775\\
+\midrule
+\textbf{\textbf{Mejor modelo}} & \textbf{Hogar} & \textbf{Ensamble} & \textbf{0.3 / 0.7, umbral 0.40} & \textbf{0.776}\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item F1 de validación cruzada (5 folds por hogar; las personas heredan el fold de su hogar). Tweedie 1.5 sobre el ingreso en millones; el ingreso de cada persona se suma por hogar.
+\end{tablenotes}
+\end{threeparttable}

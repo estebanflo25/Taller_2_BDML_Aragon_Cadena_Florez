@@ -1,0 +1,32 @@
+\begin{table}
+\centering\begingroup\fontsize{7}{9}\selectfont
+
+\begin{tabular}[t]{lllccc}
+\toprule
+Modelo & Algoritmo & Envió & F1 CV & Público & Privado\\
+\midrule
+LightGBM monótono + ingreso con sigma & Boosting & Flórez & 0.777 & 0.77 & 0.77\\
+\textbf{Clasificación + personas (17 + 20 + 22) con sigma} & \textbf{Boosting} & \textbf{Cadena} & \textbf{0.776} & \textbf{0.77} & \textbf{0.77}\\
+Clasificación + personas (17 + 20) con sigma & Boosting & Cadena & 0.775 & 0.77 & 0.78\\
+Clasificación + LightGBM de personas & Boosting & Cadena & 0.772 & 0.77 & 0.77\\
+Promedio LightGBM monótono + XGBoost con brecha & Boosting & Flórez & 0.764 & 0.76 & 0.76\\
+Ensamble XGBoost ingreso + clasificación & Boosting & Cadena & 0.762 & 0.76 & 0.76\\
+XGBoost clasificación + LightGBM de ingreso & Boosting & Aragón & 0.761 & 0.76 & 0.76\\
+Ensamble logit + RF + XGBoost & Ensamble & Cadena & 0.761 & 0.76 & 0.76\\
+XGBoost de clasificación & Boosting & Cadena & 0.760 & 0.76 & 0.76\\
+XGBoost de ingreso del hogar & Boosting & Cadena & 0.757 & 0.76 & 0.76\\
+Ensamble logit + RF & Ensamble & Cadena & 0.752 & 0.74 & 0.75\\
+Ensamble logit + CART & Ensamble & Cadena & 0.745 & 0.74 & 0.75\\
+Random Forest mtry 65 (OOB) & Random Forest & Cadena & 0.741 & 0.73 & 0.74\\
+Logit (todas las variables) & Logit & Cadena & 0.739 & 0.73 & 0.74\\
+Elastic net & Elastic Net & Cadena & 0.738 & 0.73 & 0.74\\
+Random Forest mtry 26 (OOB) & Random Forest & Cadena & 0.737 & 0.73 & 0.73\\
+LPM (todas las variables) & LPM & Aragón & 0.713 & 0.71 & 0.71\\
+CART & CART & Cadena & 0.704 & 0.70 & 0.71\\
+CART con up-sampling & CART & Cadena & 0.702 & 0.69 & 0.70\\
+Logit con 11 variables & Logit & Aragón & 0.669 & 0.67 & 0.67\\
+LPM parsimonioso (18 variables) & LPM & Cadena & 0.656 & 0.66 & 0.66\\
+\bottomrule
+\end{tabular}
+\endgroup{}
+\end{table}

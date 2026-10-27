@@ -686,3 +686,109 @@ fun_kbl <- function(.df, .align = NULL, .digits = 2) {
       align = .align, digits = .digits,
       format.args = list(big.mark = ",", decimal.mark = "."))
 }
+
+
+# ==============================================================================
+# 6. RESULTADOS: ETIQUETAS Y MÉTRICAS PARA LAS DIAPOSITIVAS
+# ==============================================================================
+# Lo usan los scripts de 01_Scripts/04_Results. Así las figuras y tablas de los
+# dos decks nombran igual las variables y calculan igual las métricas.
+
+# Nombres en español de las variables que aparecen en las figuras de
+# importancia. Las columnas crudas de la encuesta (prefijo r_) se nombran por
+# la pregunta de la GEIH; las de personas que vienen del hogar llevan h_.
+etiquetas_variables <- c(
+  # Hogar (base db_train)
+  num_arriendo_pc             = "Arriendo por persona",
+  num_log_arriendo_pc         = "Log del arriendo por persona",
+  num_arriendo                = "Arriendo del hogar",
+  num_horas_pc                = "Horas trabajadas por persona",
+  num_horas_total             = "Horas trabajadas del hogar",
+  bin_any_arriendos_pensiones = "Recibe arriendos o pensiones",
+  num_cotizantes              = "Número de cotizantes a pensión",
+  prop_ocupados_ug            = "Proporción de ocupados",
+  prop_ocupados_pet           = "Ocupados / edad de trabajar",
+  cat_tenencia                = "Tenencia de la vivienda",
+  prop_cotizantes_ocup        = "Ocupados que cotizan (%)",
+  prop_subsidiado             = "Afiliados al régimen subsidiado (%)",
+  bin_any_pension             = "Alguien recibe pensión",
+  bin_arriendo_imputado       = "Arriendo imputado",
+  bin_any_prima_servicios     = "Alguien recibe prima de servicios",
+  num_ingreso_requerido       = "Línea de pobreza × personas",
+  prop_empresa_mas5_ocup      = "Ocupados en empresa de 6+ (%)",
+  num_minors                  = "Número de menores de edad",
+  num_empresa_mas5            = "Ocupados en empresa de 6+",
+  num_mean_educ_adults        = "Años de educación de los adultos",
+  bin_any_ingreso_trabajo_no_ocup = "Desocupado con ingreso laboral",
+  num_lp                      = "Línea de pobreza",
+  num_personas_ug             = "Personas en la unidad de gasto",
+  cat_head_posicion           = "Posición ocupacional del jefe",
+  cat_dominio                 = "Ciudad / dominio",
+  cat_geo                     = "Departamento × zona",
+  num_head_age                = "Edad del jefe",
+  num_personas_cuarto         = "Personas por cuarto",
+  # Personas (modelos de ingreso)
+  cat_posicion                = "Posición ocupacional",
+  num_age                     = "Edad",
+  bin_arriendos_pensiones     = "Recibe arriendos o pensiones",
+  bin_minor                   = "Menor de edad",
+  bin_otros_ingresos          = "Recibe otros ingresos",
+  num_horas                   = "Horas trabajadas",
+  bin_ingreso_trabajo_no_ocup = "Desocupado con ingreso laboral",
+  cod_oficio                  = "Oficio (2 dígitos)",
+  num_educ_years              = "Años de educación",
+  bin_contributivo            = "Régimen contributivo de salud",
+  bin_pension                 = "Recibe pensión",
+  bin_pension_alimenticia     = "Recibe cuota alimentaria",
+  bin_intereses               = "Recibe intereses o dividendos",
+  bin_ocupado                 = "Está ocupado",
+  bin_inactivo                = "Está inactivo",
+  bin_edad_trabajar           = "En edad de trabajar",
+  h_bin_any_ingreso_trabajo_no_ocup = "Hogar: desocupado con ingreso",
+  h_num_arriendo              = "Hogar: arriendo",
+  r_P6920                     = "Cotiza a pensión (P6920)",
+  r_P6430                     = "Posición ocupacional (P6430)",
+  r_P7495                     = "Recibe arriendos o pensiones (P7495)",
+  r_P7500s2                   = "Recibe pensión (P7500s2)",
+  r_P7500s3                   = "Recibe cuota alimentaria (P7500s3)",
+  r_P7510s1                   = "Ayuda de otros hogares (P7510s1)",
+  r_P7510s3                   = "Ayuda de instituciones (P7510s3)",
+  r_P7510s5                   = "Intereses o dividendos (P7510s5)",
+  r_P7510s6                   = "Cesantías (P7510s6)",
+  r_P7422                     = "Desocupado: ingreso laboral (P7422)",
+  r_P7472                     = "Inactivo: ingreso laboral (P7472)"
+)
+
+fun_etiqueta <- function(.x) {
+  #' Nombre en español de una variable (si no está en el diccionario, el nombre
+  #' original sin prefijo)
+  out <- unname(etiquetas_variables[.x])
+  ifelse(is.na(out), .x, out)
+}
+
+fun_metricas <- function(.obs, .prob, .umbral) {
+  #' Matriz de confusión y métricas con un umbral dado
+  #'
+  #' @param .obs factor Pobre ("Yes"/"No") o lógico (TRUE = pobre).
+  #' @param .prob probabilidad predicha de ser pobre.
+  #' @param .umbral umbral de clasificación.
+  #' @returns tibble de una fila: VP, FP, FN, VN, precision, recall, F1,
+  #'   fuga (FP / predichos pobres) y subcobertura (FN / pobres).
+  y    <- if (is.logical(.obs)) .obs else .obs == "Yes"
+  pred <- .prob >= .umbral
+  tp <- sum(pred & y); fp <- sum(pred & !y); fn <- sum(!pred & y); tn <- sum(!pred & !y)
+  tibble(VP = tp, FP = fp, FN = fn, VN = tn,
+         precision = tp / (tp + fp), recall = tp / (tp + fn),
+         F1 = 2 * tp / (2 * tp + fp + fn),
+         fuga = fp / (tp + fp), subcobertura = fn / (tp + fn))
+}
+
+# Colores fijos por familia de algoritmo (Okabe-Ito) para todas las figuras
+# de comparación.
+pal_algoritmos <- c("LPM"           = "#999999",
+                    "Logit"         = "#56B4E9",
+                    "Elastic Net"   = "#0072B2",
+                    "CART"          = "#E69F00",
+                    "Random Forest" = "#009E73",
+                    "Boosting"      = "#D55E00",
+                    "Mejor modelo"  = "#CC79A7")

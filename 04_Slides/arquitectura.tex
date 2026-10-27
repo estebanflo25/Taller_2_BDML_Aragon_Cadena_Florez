@@ -1,0 +1,30 @@
+% Diagrama del mejor modelo (se usa en los dos decks)
+\begin{tikzpicture}[
+  font=\scriptsize, >={Stealth[length=2mm]},
+  caja/.style={draw=#1, fill=#1!10, rounded corners=3pt, align=center, minimum height=8mm, inner sep=3pt, line width=0.7pt},
+  caja/.default=azul, flecha/.style={->, line width=0.7pt, color=gris}]
+  % Personas
+  \node[caja=naranja, text width=24mm] (per) {\textbf{541 mil personas}\\variables propias\\+ de su hogar};
+  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=9mm] (m17) {LightGBM: ingreso total};
+  \node[caja=naranja, text width=27mm, right=8mm of per] (m20) {LightGBM: + columnas\\crudas y pesos};
+  \node[caja=naranja, text width=27mm, right=8mm of per, yshift=-9mm] (m22) {5 LightGBM: uno por\\componente del ingreso};
+  \node[caja=naranja, text width=22mm, right=7mm of m20] (suma) {Suma por hogar\\y promedio: $\hat y$};
+  \node[caja=naranja, text width=28mm, right=7mm of suma] (z) {$z = \hat y - g$\\$g$: brecha exacta del DANE\\$\sigma$: error esperado};
+  \node[caja=naranja, text width=20mm, below=6mm of z] (logit) {Logit en\\$z,\ z/\sigma,\ \log\sigma$};
+  % Hogar
+  \node[caja=azul, text width=24mm, below=17mm of per] (hog) {\textbf{165 mil hogares}\\85 variables};
+  \node[caja=azul, text width=27mm, right=8mm of hog] (xgb) {XGBoost de\\clasificación};
+  % Ensamble
+  \node[caja=rosa, text width=34mm, below=6mm of logit] (ens) {$P = 0.3\,P_{\text{XGB}} + 0.7\,P_{\text{ingreso}}$\\pobre si $P \geq 0.40$};
+  \draw[flecha] (per.east) -- ++(3mm,0) |- (m17.west);
+  \draw[flecha] (per.east) -- (m20.west);
+  \draw[flecha] (per.east) -- ++(3mm,0) |- (m22.west);
+  \draw[flecha] (m17.east) -- ++(3mm,0) |- (suma.west);
+  \draw[flecha] (m20.east) -- (suma.west);
+  \draw[flecha] (m22.east) -- ++(3mm,0) |- (suma.west);
+  \draw[flecha] (suma) -- (z);
+  \draw[flecha] (z) -- (logit);
+  \draw[flecha] (logit) -- (ens);
+  \draw[flecha] (hog) -- (xgb);
+  \draw[flecha] (xgb.east) -- (xgb.east -| ens.west);
+\end{tikzpicture}

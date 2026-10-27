@@ -1,0 +1,17 @@
+
+\begin{tabular}[t]{llcccccc}
+\toprule
+\multicolumn{2}{c}{ } & \multicolumn{4}{c}{Validación cruzada (5 folds)} & \multicolumn{2}{c}{Kaggle} \\
+\cmidrule(l{3pt}r{3pt}){3-6} \cmidrule(l{3pt}r{3pt}){7-8}
+Algoritmo & Especificación & F1 CV & Precisión & Recall & Umbral & Público & Privado\\
+\midrule
+LPM & MCO con todas las variables & 0.713 & 0.660 & 0.775 & 0.37 & 0.71 & 0.71\\
+Logit & Todas las variables menos 8 redundantes & 0.739 & 0.706 & 0.775 & 0.37 & 0.73 & 0.74\\
+Elastic Net & $\alpha = 0.9$, $\lambda = 0.0003$ & 0.738 & 0.700 & 0.782 & 0.36 & 0.73 & 0.74\\
+CART & $cp = 0.00013$ (420 hojas) & 0.704 & 0.703 & 0.705 & 0.30 & 0.70 & 0.71\\
+Random Forest & mtry = 65, hoja mín. 10, 300 árboles & 0.741 & 0.700 & 0.787 & 0.37 & 0.73 & 0.74\\
+Boosting & XGBoost: prof. 6, $\eta = 0.05$, 800 árboles & 0.760 & 0.718 & 0.809 & 0.36 & 0.76 & 0.76\\
+\midrule
+\textbf{Mejor modelo} & \textbf{0.3 XGBoost + 0.7 ingreso de personas (LightGBM) con $\sigma$} & \textbf{0.776} & \textbf{0.748} & \textbf{0.806} & \textbf{0.40} & \textbf{0.77} & \textbf{0.77}\\
+\bottomrule
+\end{tabular}

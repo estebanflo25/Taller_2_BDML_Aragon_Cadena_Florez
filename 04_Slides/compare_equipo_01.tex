@@ -1,0 +1,190 @@
+% ==============================================================================
+% compare_equipo_01.tex: Algorithm Comparison
+% Taller 2 - Predicting Poverty | MECA 4107 | Equipo 1: Aragón, Cadena, Flórez
+% Compilar desde 04_Slides con: pdflatex compare_equipo_01.tex
+% ==============================================================================
+\documentclass[aspectratio=169, 10pt]{beamer}
+\input{estilo.tex}
+\subtitle{Algorithm Comparison: el algoritmo importa, la información importa más}
+
+\begin{document}
+
+\maketitle
+
+% ------------------------------------------------------------------------------
+\input{mejor_modelo.tex}
+
+% ------------------------------------------------------------------------------
+\section{Datos}
+
+\begin{frame}{Por qué este problema premia la flexibilidad y la información}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\includegraphics[width=\linewidth]{fig_educ_formalidad.pdf}
+\end{column}
+\begin{column}{0.43\textwidth}
+\small
+\begin{itemize}\setlength\itemsep{0.35em}
+\item \textbf{Interacciones:} la educación protege sobre todo cuando el trabajo es informal. Un logit las necesita a mano; los árboles las encuentran solos.
+\item \textbf{Umbrales:} la pobreza es $\mathbb{1}(S < G)$, un corte sobre el ingreso. Los árboles cortan.
+\item \textbf{Desbalance:} 20 \% pobres. Todos los modelos eligen su \alert{umbral} con la misma regla.
+\item \textbf{Información:} el ingreso está en las \alert{personas}; un modelo a nivel hogar solo ve agregados.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Un campo nivelado: la diferencia es del algoritmo}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\begin{block}{Lo mismo para todos los modelos}
+\small
+\begin{itemize}
+\item \textbf{Base:} 164,960 hogares, 85 predictores (hogar + personas agregadas), sin variables de ingreso.
+\item \textbf{Validación:} los mismos 5 folds estratificados (semilla 2026).
+\item \textbf{Métrica:} F1 fuera de muestra.
+\item \textbf{Umbral:} el que maximiza el F1 sobre las predicciones fuera de muestra (grilla 0.01--0.99).
+\item \textbf{Hiperparámetros:} búsqueda en grilla con validación cruzada.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Lo que cambia}
+\small
+\begin{itemize}
+\item \textbf{LPM y Logit:} efectos aditivos (MCO y máxima verosimilitud).
+\item \textbf{Elastic Net:} logit con penalización $L_1 + L_2$.
+\item \textbf{CART:} un árbol podado por $cp$.
+\item \textbf{Random Forest:} promedio de 300 árboles profundos (bagging + mtry).
+\item \textbf{Boosting:} árboles poco profundos en secuencia, cada uno corrige al anterior.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\vspace{0.4em}
+{\small El mejor modelo rompe el campo nivelado a propósito: \alert{agrega información} (el ingreso de cada persona). Se compara aparte.}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+\section{Comparación de algoritmos}
+
+\begin{frame}{Los seis algoritmos: boosting gana con las mismas variables}
+\centering
+\tablar{0.95\linewidth}{tab_algoritmos}
+\par\vspace{0.6em}
+{\small Los dos más cercanos al boosting en Kaggle son \alert{Random Forest} y \alert{Logit} (0.73 público; 0.741 y 0.739 en CV). Naive Bayes no se usó: supone independencia entre variables muy correlacionadas.}
+\end{frame}
+
+\begin{frame}{Búsqueda de hiperparámetros: afinar mueve poco el F1}
+\begin{columns}[c]
+\begin{column}{0.64\textwidth}
+\includegraphics[width=\linewidth]{fig_tuning.pdf}
+\end{column}
+\begin{column}{0.34\textwidth}
+\small
+\begin{itemize}
+\item \textbf{Elastic Net:} el óptimo es casi sin penalización ($\lambda \approx 0.0003$): regularizar no ayuda con 165 mil hogares.
+\item \textbf{RF:} lo que importa es \alert{mtry}; árboles profundos (hoja 10).
+\item \textbf{XGBoost:} 78 configuraciones entre 0.757 y 0.760: una meseta.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Boosting frente a Random Forest y Logit, en igualdad de condiciones}
+\centering
+\tablar{0.8\linewidth}{tab_campo_nivelado}
+\par\vspace{0.8em}\raggedright
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}
+\begin{block}{Logit (0.739)}
+\small Efectos aditivos. Las interacciones económicas hechas a mano sumaron solo 0.001.
+\end{block}
+\end{column}
+\begin{column}{0.32\textwidth}
+\begin{block}{Random Forest (0.741)}
+\small Capta interacciones, pero promediar árboles profundos reduce \alert{varianza}, no sesgo. Lo que más pesa es mtry.
+\end{block}
+\end{column}
+\begin{column}{0.32\textwidth}
+\begin{block}{Boosting (0.760)}
+\small Cada árbol corrige el error del anterior: reduce \alert{sesgo}. Ventaja de +0.02, entre 10 y 15 veces su error estándar.
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Dónde gana el boosting: en todos los grupos, sobre todo en hogares pequeños}
+\centering
+\includegraphics[height=0.84\textheight]{fig_f1_grupos.pdf}
+\end{frame}
+
+\begin{frame}{Dónde fallan todos: cerca de la línea de pobreza}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_distancia_linea.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\begin{itemize}
+\item Lejos de la línea, todos aciertan más del 90 \%.
+\item Cerca de la línea ($\pm 0.25$ log) aciertan 60--70 \%: ahí está más de la mitad de los errores.
+\item Ningún algoritmo arregla eso; solo \alert{más información} sobre el ingreso.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{El desbalance se maneja igual para todos: con el umbral}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{fig_curvas_umbral.pdf}
+\end{column}
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{fig_umbral_teoria.pdf}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+{\small Con umbral 0.5 el logit pierde 0.02 y el boosting 0.01. El up-sampling en CART no cambió el F1 (0.702 frente a 0.704). Con probabilidades calibradas, el umbral óptimo es $F1^*/2$: el mejor modelo sube su umbral a 0.40.}
+\end{frame}
+
+\begin{frame}{Del mejor algoritmo al mejor modelo: la información}
+\centering
+\includegraphics[height=0.86\textheight]{fig_escalera.pdf}
+\end{frame}
+
+\begin{frame}{La validación cruzada predijo a Kaggle}
+\begin{columns}[c]
+\begin{column}{0.62\textwidth}
+\includegraphics[width=\linewidth]{fig_cv_kaggle.pdf}
+\end{column}
+\begin{column}{0.36\textwidth}
+\small
+\begin{itemize}
+\item Correlación CV--privado: \alert{0.99} en 21 envíos.
+\item Decidimos con el CV, no con el público (ruido de $\pm 0.006$ con 13 mil hogares).
+\item El ensamble 17 + 20 con $\sigma$ sacó 0.78 en el privado y el elegido 0.77, con CV 0.7755 frente a 0.7764: es \alert{ruido}, no una razón para elegir por el público.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+\section{Conclusión}
+
+\begin{frame}{¿Qué modelo le recomendaríamos a una entidad del gobierno?}
+\vspace{0.6em}
+\centering
+\tablar{\linewidth}{tab_tradeoffs}
+\par\vspace{1.4em}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\textbf{Complejidad frente a desempeño.} De logit a boosting: +0.02 sin perder variables. Del boosting al mejor modelo: +0.016, pero con siete modelos y el módulo de ingresos.
+\end{column}
+\begin{column}{0.48\textwidth}
+\textbf{Recomendación.} Para focalizar: \alert{boosting a nivel hogar} con preguntas verificables y un umbral elegido por el costo de los errores. El mejor de Kaggle no es necesariamente el mejor instrumento.
+\end{column}
+\end{columns}
+\end{frame}
+
+\end{document}

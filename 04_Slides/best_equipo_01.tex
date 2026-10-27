@@ -1,0 +1,247 @@
+% ==============================================================================
+% best_equipo_01.tex: Best Model Deep Dive
+% Taller 2 - Predicting Poverty | MECA 4107 | Equipo 1: Aragón, Cadena, Flórez
+% Compilar desde 04_Slides con: pdflatex best_equipo_01.tex
+% ==============================================================================
+\documentclass[aspectratio=169, 10pt]{beamer}
+\input{estilo.tex}
+\subtitle{Best Model Deep Dive: un clasificador con un índice de ingreso}
+
+\begin{document}
+
+\maketitle
+
+% ------------------------------------------------------------------------------
+\input{mejor_modelo.tex}
+
+% ------------------------------------------------------------------------------
+\section{Datos}
+
+\begin{frame}{La pobreza es una regla sobre el ingreso, y 1 de cada 5 hogares es pobre}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\includegraphics[width=\linewidth]{fig_desbalance.pdf}
+\end{column}
+\begin{column}{0.43\textwidth}
+\begin{block}{La regla del DANE, reconstruida en train}
+\centering
+$\text{Pobre} = 1 \iff S < G$
+\par\vspace{0.3em}\raggedright
+{\small $S = \sum_{j \in UG} \text{Ingtot}_j$: ingreso de las personas\\
+$G = L_p \times N_{ug} - R$: brecha ($R$: arriendo imputado)\\
+Reproduce el \alert{99.99 \%} de la pobreza de train.}
+\end{block}
+\vspace{0.3em}
+\small
+\begin{itemize}
+\item \textbf{$G$ se conoce en test} (línea, personas y arriendo): solo hay que predecir $S$.
+\item \textbf{$S$ vive en las personas}: el ingreso es la suma de lo que gana cada miembro.
+\item \textbf{Desbalance:} 20 \% pobres. Con F1, predecir ``nadie es pobre'' da 0.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Lo que predice la pobreza: trabajo formal, dependencia y vivienda}
+\mensaje{Con empleo formal la pobreza baja a 2--11 \%; con muchos menores y pocos ocupados llega al 93 \%}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{fig_educ_formalidad.pdf}
+\end{column}
+\begin{column}{0.5\textwidth}
+\includegraphics[width=\linewidth]{fig_dependencia.pdf}
+\end{column}
+\end{columns}
+\vspace{0.3em}
+{\small Razonamiento económico: el ingreso del hogar $\approx$ ocupados $\times$ calidad del empleo, repartido entre sus miembros. La vivienda (arriendo por persona) resume el ingreso permanente.}
+\end{frame}
+
+\begin{frame}{El ingreso tiene cinco fuentes con procesos muy distintos}
+\begin{columns}[c]
+\begin{column}{0.5\textwidth}
+\tablar{\linewidth}{tab_componentes}
+\vspace{0.6em}
+
+{\small Los componentes suman exactamente \texttt{Ingtot} en el 100 \% de las personas de train.}
+\end{column}
+\begin{column}{0.48\textwidth}
+\begin{block}{Por qué modelar a las personas}
+\small
+\begin{itemize}
+\item El salario depende de la \alert{posición ocupacional}, la cotización y el oficio de cada miembro.
+\item Las \alert{pensiones} son el 12 \% del ingreso pero las recibe el 5 \% de las personas: un monto grande y casi fijo.
+\item Un modelo a nivel hogar solo ve promedios; uno por persona ve \alert{quién} genera el ingreso.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+\section{El mejor modelo}
+
+\begin{frame}{Arquitectura y entrenamiento: siete modelos, una probabilidad}
+\centering
+\resizebox{0.72\linewidth}{!}{\input{arquitectura.tex}}
+\par\vspace{0.4em}
+\tablar{0.86\linewidth}{tab_piezas}
+\end{frame}
+
+\begin{frame}{Cada pieza suma: el algoritmo llega a 0.76, la información a 0.78}
+\centering
+\includegraphics[height=0.86\textheight]{fig_escalera.pdf}
+\end{frame}
+
+\begin{frame}{El índice de ingreso ya separa a pobres y no pobres}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_z_separacion.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\[ z = \log \hat S - \log G \]
+\begin{itemize}
+\item Sin umbral ni calibración, la regla $z<0$ ya da F1 de 0.76.
+\item \textbf{Tweedie (1.5):} muchos ceros (niños, inactivos) y una cola larga; predice la \alert{media}, así que la suma por hogar no se sesga.
+\item El error se concentra cerca de $z = 0$: ahí decide la calibración.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{La incertidumbre por hogar: la misma $z$ no significa lo mismo}
+\centering
+\includegraphics[height=0.72\textheight]{fig_sigma.pdf}
+
+\small El ingreso de un asalariado privado se predice con un error de 0.18 (en log); el de un patrón, con 0.33.
+\[\text{logit}\,P(\text{Pobre}) = b_0 + b_1 z + b_2 \tfrac{z}{\sigma} + b_3 \log\sigma\]
+\end{frame}
+
+\begin{frame}{Importancia (I): el clasificador mira vivienda y trabajo formal}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_importancia_clasificador.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\begin{itemize}
+\item \textbf{Arriendo por persona}: aproxima el ingreso permanente y el estrato.
+\item \textbf{Horas por persona} y \textbf{cotizantes}: cuánto trabajo hay y qué tan formal es.
+\item \textbf{Arriendos o pensiones}: ingresos que no dependen del empleo.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Importancia (II): cada fuente de ingreso tiene su predictor}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_importancia_componentes.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\begin{itemize}
+\item \textbf{Trabajo:} la posición ocupacional (asalariado, cuenta propia, patrón) y la cotización a pensión.
+\item \textbf{Pensiones:} una sola pregunta (``¿recibe pensión?'') explica el 96 \%.
+\item Separar las fuentes evita que el modelo de trabajo ``promedie'' a los pensionados.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Diagnóstico: los errores están cerca de la línea}
+\begin{columns}[c]
+\begin{column}{0.66\textwidth}
+\includegraphics[width=\linewidth]{fig_distancia_linea.pdf}
+\end{column}
+\begin{column}{0.32\textwidth}
+\small
+\begin{itemize}\setlength\itemsep{0.3em}
+\item El \alert{56 \%} de los errores son hogares a menos de $\pm 0.25$ log de su brecha: ruido casi irreducible.
+\item Lejos de la línea acierta más del 90 \%.
+\end{itemize}
+\vspace{0.3em}
+\textbf{F1 por grupo (mejor modelo)}\\[0.3em]
+\tablar{0.9\linewidth}{tab_grupos_mejor}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{El desbalance se maneja con el umbral, no rebalanceando}
+\begin{columns}[c]
+\begin{column}{0.64\textwidth}
+\includegraphics[width=\linewidth]{fig_curvas_umbral.pdf}
+\end{column}
+\begin{column}{0.34\textwidth}
+\small
+\begin{itemize}
+\item Con umbral 0.5 el mejor modelo pierde 0.01 de F1; el logit, 0.02.
+\item \textbf{Up-sampling} en el CART: F1 0.702 frente a 0.704 sin rebalanceo. Solo movió el umbral de 0.30 a 0.74.
+\item Elegir el umbral por F1 \alert{ya corrige} el desbalance.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ------------------------------------------------------------------------------
+\section{Implicaciones de política}
+
+\begin{frame}{El F1 elige un punto entre fuga y subcobertura}
+\begin{columns}[c]
+\begin{column}{0.55\textwidth}
+\includegraphics[width=\linewidth]{fig_fuga_subcobertura.pdf}
+\end{column}
+\begin{column}{0.44\textwidth}
+\tablar{\linewidth}{tab_confusion}
+\par\vspace{0.6em}
+\tablar{\linewidth}{tab_escenarios}
+\end{column}
+\end{columns}
+\vspace{0.2em}
+{\small Con el F1, \alert{1 de cada 5 pobres queda por fuera} y 1 de cada 4 beneficiarios no es pobre. Un programa de transferencias suele preferir cobertura: umbral 0.23.}
+\end{frame}
+
+\begin{frame}{¿Se puede usar con una encuesta corta?}
+\begin{columns}[c]
+\begin{column}{0.6\textwidth}
+\includegraphics[width=\linewidth]{fig_parsimonia.pdf}
+\end{column}
+\begin{column}{0.38\textwidth}
+\footnotesize
+\textbf{Recomendación}
+\begin{enumerate}\setlength\itemsep{0.2em}
+\item Recortar cuesta: 10 variables dan \alert{0.69}; 40 dan 0.75.
+\item Encuesta corta \alert{verificable} (vivienda, demografía, ocupados, cotizantes en PILA): 0.685.
+\item Empleo y formalidad son las preguntas que más rinden por minuto.
+\item El módulo de ingresos suma 0.09, pero es caro y manipulable con un subsidio en juego.
+\item Fijar el umbral según el costo de cada error.
+\end{enumerate}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Conclusiones}
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}
+\begin{block}{1. Información}
+Entender la regla del DANE y modelar el ingreso de \alert{cada persona} sube el F1 de 0.760 a 0.776. Es la mayor ganancia después de pasar a boosting.
+\end{block}
+\end{column}
+\begin{column}{0.32\textwidth}
+\begin{block}{2. Algoritmo y umbral}
+Con las mismas variables, el boosting le gana 0.02 al logit y al RF. El \alert{umbral} (0.40) resuelve el desbalance mejor que rebalancear.
+\end{block}
+\end{column}
+\begin{column}{0.32\textwidth}
+\begin{block}{3. Política}
+El F1 pesa igual fuga y subcobertura: un programa debe \alert{elegir su umbral}. Una encuesta corta y verificable cuesta unos 0.09 de F1.
+\end{block}
+\end{column}
+\end{columns}
+\vspace{1.2em}
+\begin{center}
+\cifra{0.776}{F1 validación cruzada}\hspace{2em}\cifra{0.77}{Kaggle público}\hspace{2em}\cifra{0.77}{Kaggle privado}
+\end{center}
+\end{frame}
+
+\end{document}
