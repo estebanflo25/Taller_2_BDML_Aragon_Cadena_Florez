@@ -1,6 +1,6 @@
 # ==============================================================================
 # 25_ensamble_lgbm_ingreso.R
-# Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
+# Taller 2 - Predicting Poverty | Big Data y Machine Learning
 # Equipo 1
 #
 # Objetivo: ensamblar dos modelos de naturaleza distinta y guardar el envío
@@ -20,46 +20,19 @@
 # modelo de ingreso aprende toda la escala del ingreso y usa la regla exacta
 # del DANE. Se equivocan en hogares distintos, así que el promedio ponderado
 # corrige parte de los errores de cada uno.
-#
-# Para qué sirve este envío: el ensamble de clasificación + ingreso que ya
-# está en Kaggle usa un XGBoost como clasificador. Este usa el LightGBM
-# monótono: tiene el MISMO F1 esperado, pero clasifica distinto unos cientos de
-# hogares de test. Es el candidato natural para el SEGUNDO envío de la
-# selección final de Kaggle (cuenta el mejor de los dos marcados en el test
-# privado): si el azar del privado castiga a uno, el otro queda de respaldo.
-#
-# Pasos:
-#   1. Leer y alinear las dos piezas (hogar por hogar, en train y en test).
-#   2. Elegir el peso w y el umbral con las predicciones fuera de muestra,
-#      sin Bogotá, y medir el F1 honesto por cross-fitting.
-#   3. Comparar de forma pareada contra el ensamble que ya está en Kaggle.
-#   4. Guardar el .rds y el envío.
-#
 # Entrada:  03_Output/Models/prom_lgbm_xgb.rds   (script 24: correrlo antes)
 #           03_Output/Models/ensamble_sigma.rds  (script 23)
 #           02_Data/Processed/db_{train,test}.rds
 #           02_Data/Raw/sample_submission.csv
 # Salida:   03_Output/Models/ens_lgbm_ingreso.rds
 #           03_Output/Submissions/ENS_lgb_monotono_<w>_ingreso_sigma_<1-w>_umbral_<u>.csv
-# Todas las carpetas son las GENERALES del repositorio
-# (Taller_2_BDML_Aragon_Cadena_Florez/03_Output/...).
-#
-# Tiempo: menos de un minuto (no entrena modelos: solo combina los guardados).
-# Todas las funciones están definidas en este script.
-# ==============================================================================
 
-
-# ==============================================================================
-# 0. PAQUETES Y RUTAS
-# ==============================================================================
+##### 0. PAQUETES Y RUTAS #####
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(here,       # Rutas relativas a la raíz del proyecto.
                tidyverse,  # Manejo de datos.
                caret)      # createFolds(): la misma partición de los demás modelos.
 
-# here() es la raíz del proyecto (la carpeta con
-# Taller_2_BDML_Aragon_Cadena_Florez.Rproj). Se verifica para que todo se lea
-# y se escriba en la carpeta general 03_Output del repositorio.
 stopifnot(file.exists(here("Taller_2_BDML_Aragon_Cadena_Florez.Rproj")))
 dir_modelos <- here("03_Output", "Models")        # Taller_2_BDML_Aragon_Cadena_Florez/03_Output/Models
 dir_envios  <- here("03_Output", "Submissions")   # Taller_2_BDML_Aragon_Cadena_Florez/03_Output/Submissions
@@ -71,9 +44,7 @@ if (!file.exists(ruta_clasificacion)) stop("Falta ", ruta_clasificacion, ": corr
 if (!file.exists(ruta_ingreso))       stop("Falta ", ruta_ingreso, ": corre antes 23_ensamble_sigma.R")
 
 
-# ==============================================================================
-# 1. LEER Y ALINEAR LAS DOS PIEZAS
-# ==============================================================================
+###### 1. LEER Y ALINEAR LAS DOS PIEZAS #####
 db_train <- readRDS(here("02_Data", "Processed", "db_train.rds"))
 db_test  <- readRDS(here("02_Data", "Processed", "db_test.rds"))
 clas <- readRDS(ruta_clasificacion)
@@ -111,8 +82,8 @@ stopifnot(!anyNA(t_clas), !anyNA(t_ing))
 y_num   <- as.integer(db_train$Pobre == "Yes")
 eval_ok <- db_train$cat_dominio != "BOGOTA"     # se evalúa sin Bogotá: test no tiene Bogotá
 
-# Misma partición de 5 folds (estratificada, semilla 2026) con la que se
-# calcularon las OOF de las dos piezas. Se necesita para el F1 honesto y para
+# Hicimos la misma partición de 5 folds (estratificada, semilla 2026) con la que se
+# calcularon las OOF de las dos piezas. Se necesita para 
 # la comparación pareada por fold.
 set.seed(2026)
 folds <- createFolds(db_train$Pobre, k = 5, returnTrain = TRUE)
@@ -120,15 +91,14 @@ fold  <- integer(n)
 for (k in seq_along(folds)) fold[-folds[[k]]] <- k
 
 
-# ==============================================================================
-# 2. PESO, UMBRAL Y F1 HONESTO
-# ==============================================================================
+
+###### 2. PESO, UMBRAL Y F1 HONESTO #####
 fun_f1 <- function(.p, .y, .u) {                 # F1 = 2 TP / (predichos + reales)
   pred <- .p >= .u
   2 * sum(pred & .y) / (sum(pred) + sum(.y))
 }
 grid_u <- seq(0.05, 0.95, by = 0.01)             # umbrales candidatos
-pesos  <- seq(0, 1, by = 0.1)                    # w candidatos: 11, a propósito pocos
+pesos  <- seq(0, 1, by = 0.1)                    # w candidatos
 
 # Para un conjunto de hogares, prueba las 11 × 91 combinaciones (w, umbral) y
 # devuelve la de mayor F1. w = 1 es solo clasificación; w = 0, solo ingreso.
@@ -145,9 +115,8 @@ fun_elegir <- function(.filas) {
 elegido <- fun_elegir(which(eval_ok))
 print(elegido)
 
-# (b) F1 honesto: para cada fold k, w y umbral se eligen con los otros 4 folds
-#     y se aplican al fold k. Si el honesto se cae mucho frente a (a), la
-#     elección de w y umbral estaría sobreajustada.
+# (b) F1: para cada fold k, w y umbral se eligen con los otros 4 folds
+#     y se aplican al fold k. 
 pred_honesta <- rep(NA, n)
 for (k in 1:5) {
   b <- fun_elegir(which(fold != k & eval_ok))
@@ -157,18 +126,13 @@ for (k in 1:5) {
 e <- which(eval_ok)
 F1_honesto <- 2 * sum(pred_honesta[e] & y_num[e] == 1) / (sum(pred_honesta[e]) + sum(y_num[e]))
 cat(sprintf("F1 elegido: %.4f | F1 honesto: %.4f\n", elegido$F1, F1_honesto))
-# Lectura esperada: w = 0,3 (70 % del peso al modelo de ingreso), umbral
-# ~0,40 y F1 ~0,777, con el honesto apenas por debajo (~0,0005).
 
 
-# ==============================================================================
-# 3. COMPARACIÓN PAREADA CONTRA EL ENSAMBLE QUE YA ESTÁ EN KAGGLE
-# ==============================================================================
+###### 3. COMPARACIÓN PAREADA CONTRA EL ENSAMBLE QUE YA CARGAMOS EN KAGGLE #####
 # En cada fold se calcula F1(este ensamble) − F1(ensamble en Kaggle), cada
 # uno con su mejor umbral, sobre los MISMOS hogares. El ruido común de cada
 # fold se cancela. Si |diferencia| < 2 errores estándar, es un empate
-# estadístico: los dos tienen el mismo F1 esperado y la elección entre ellos
-# NO debe hacerse por el puntaje público.
+# estadístico: los dos tendrían el mismo F1 esperado 
 p_ens <- elegido$w * p_clas + (1 - elegido$w) * p_ing
 fun_umbral <- \(.p) grid_u[which.max(map_dbl(grid_u, \(u) fun_f1(.p[e], y_num[e] == 1, u)))]
 fun_f1_folds <- \(.p, .u) map_dbl(1:5, \(k) { i <- which(fold == k & eval_ok); fun_f1(.p[i], y_num[i] == 1, .u) })
@@ -179,9 +143,8 @@ comparacion <- tibble(F1_este_ensamble = elegido$F1, F1_honesto = F1_honesto,
 print(comparacion)
 
 
-# ==============================================================================
-# 4. GUARDAR RESULTADOS Y ENVÍO
-# ==============================================================================
+
+##### 4. GUARDAR RESULTADOS Y ENVÍO #####
 t_ens <- elegido$w * t_clas + (1 - elegido$w) * t_ing     # probabilidad en test
 
 saveRDS(list(resumen = comparacion |> mutate(w = elegido$w, umbral = elegido$umbral),
@@ -195,10 +158,6 @@ envio <- tibble(id = db_test$id, pobre = as.integer(t_ens >= elegido$umbral))
 muestra <- read.csv(here("02_Data", "Raw", "sample_submission.csv"))
 stopifnot(nrow(envio) == nrow(muestra), setequal(envio$id, muestra$id), !anyNA(envio$pobre))
 
-# Nombre: ENS_lgb_monotono_<w>_ingreso_sigma_<1-w>_umbral_<u>.csv. Ese
-# prefijo no lo usa ningún otro script del proyecto (los demás ensambles
-# empiezan por ENS_clas_, ENS_ing_ o ENS_logit_), así que no puede pisar otro
-# envío. Si ya existe, es una versión anterior de ESTE script y se reemplaza.
 ruta_envio <- file.path(dir_envios,
                         paste0("ENS_lgb_monotono_", fun_etiqueta_num(elegido$w),
                                "_ingreso_sigma_", fun_etiqueta_num(1 - elegido$w),
@@ -208,8 +167,6 @@ write.csv(envio, ruta_envio, row.names = FALSE)
 message("Envío guardado: ", ruta_envio, " | pobres predichos: ",
         scales::percent(mean(envio$pobre), 0.1))
 
-# Cuántos hogares de test clasifica distinto que el ensamble en Kaggle (con su
-# umbral). Si fueran 0, no serviría como segundo envío de respaldo.
 t_ref <- unname(ing$prob_test$prob[match(db_test$id, ing$prob_test$id)])
 cat("Hogares de test clasificados distinto que el ensamble en Kaggle:",
     sum(envio$pobre != as.integer(t_ref >= fun_umbral(p_referencia))), "\n")
