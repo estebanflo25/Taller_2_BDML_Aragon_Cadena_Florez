@@ -236,3 +236,74 @@ message("Modelo enviado: ", elegido)
 
 fun_save_submission(modelos[[elegido]], newdata[[elegido]], bests[[elegido]]$threshold,
                     paste0("Logit_", elegido, "_umbral_", fun_num_label(bests[[elegido]]$threshold)))
+
+
+
+# =====================================================
+# Diagnóstico de errores del M5
+# =====================================================
+
+oof_m5 <- oofs$M5
+
+thr_m5 <- bests$M5$threshold
+
+diag_m5 <- oof_m5 %>%
+  mutate(
+    y_real = obs == "Yes",
+    y_pred = prob >= thr_m5,
+    tipo_error = case_when(
+      y_real &  y_pred ~ "TP",
+      !y_real & !y_pred ~ "TN",
+      !y_real &  y_pred ~ "FP",
+      y_real & !y_pred ~ "FN"
+    )
+  )
+
+table(diag_m5$tipo_error)
+
+db_diag <- diag_m5 %>%
+  select(rowIndex, prob, tipo_error) %>%
+  left_join(
+    db_train %>%
+      mutate(rowIndex = row_number()),
+    by = "rowIndex"
+  )
+
+vars_num <- c(
+  "num_log_arriendo_pc",
+  "num_horas_pc",
+  "prop_ocupados_ug",
+  "num_minors",
+  "num_personas_cuarto",
+  "prop_subsidiado",
+  "prop_cotizantes_ocup",
+  "num_mean_educ_adults"
+)
+
+resumen_errores <- db_diag %>%
+  group_by(tipo_error) %>%
+  summarise(
+    across(
+      all_of(vars_num),
+      ~ mean(.x, na.rm = TRUE)
+    ),
+    n = n()
+  )
+
+print(resumen_errores, width = Inf)
+
+
+fn <- db_diag %>% filter(tipo_error == "FN")
+tp <- db_diag %>% filter(tipo_error == "TP")
+
+map_dfr(vars_num, function(v){
+  
+  tibble(
+    variable = v,
+    TP = mean(tp[[v]], na.rm = TRUE),
+    FN = mean(fn[[v]], na.rm = TRUE),
+    diferencia = mean(fn[[v]], na.rm = TRUE) -
+      mean(tp[[v]], na.rm = TRUE)
+  )
+}) %>%
+  arrange(abs(diferencia))

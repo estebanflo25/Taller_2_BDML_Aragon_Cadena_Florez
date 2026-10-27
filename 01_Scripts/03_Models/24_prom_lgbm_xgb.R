@@ -1,52 +1,21 @@
 # ==============================================================================
 # 24_prom_lgbm_xgb.R
-# Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
-# Equipo 1
+# Taller 2 - Predicting Poverty | Big Data y Machine Learning 
 #
 # Objetivo: clasificar hogares pobres con el PROMEDIO de dos modelos de
 # boosting que se equivocan en hogares algo distintos:
 #   (a) LightGBM con restricciones monótonas (15 hojas, 1.500 árboles)
-#   (b) XGBoost con variables de brecha     (profundidad 6, 800 árboles)
+#   (b) XGBoost con variables de brecha (profundidad 6, 800 árboles)
 #       p_promedio = (p_LightGBM + p_XGBoost) / 2
 # y guardar el envío a Kaggle PROM_LGBM_XGB_umbral_<u>.csv.
-#
-# Por qué un promedio: los dos modelos llegan al mismo F1 (~0,762) por
-# caminos distintos. LightGBM hace crecer los árboles hoja por hoja y trata
-# las categóricas de forma nativa; XGBoost crece por niveles y usa dummies.
-# Como no cometen exactamente los mismos errores, promediar cancela una parte.
-# En la comparación de modelos del equipo el promedio dio F1 0,764 (honesto
-# 0,764), +0,0027 sobre un XGBoost solo, con error estándar 0,0005: es la
-# única mejora estadísticamente real entre los clasificadores de hogar.
-#
-# Los hiperparámetros NO se buscan aquí: son los que eligió la regla de un
-# error estándar en esa comparación (la configuración más simple que empata
-# con la mejor). Aquí solo se estiman los modelos con esa configuración.
-#
-# Pasos:
-#   1. Datos: base por hogar + variables de la regla de pobreza del DANE.
-#   2. Validación cruzada (5 folds, semilla 2026): predicciones fuera de
-#      muestra (OOF) de cada modelo y de su promedio.
-#   3. Umbral: el que maximiza el F1 fuera de muestra SIN Bogotá (test no
-#      tiene hogares bogotanos), y F1 "honesto" por cross-fitting.
-#   4. Modelos finales con todo train y probabilidades de test.
-#   5. Guardar el .rds (lo usa 25_ensamble_lgbm_ingreso.R) y el envío.
 #
 # Entrada:  02_Data/Processed/db_{train,test}.rds
 #           02_Data/Raw/{train,test}_hogares.rds
 #           02_Data/Raw/sample_submission.csv
 # Salida:   03_Output/Models/prom_lgbm_xgb.rds
 #           03_Output/Submissions/PROM_LGBM_XGB_umbral_<u>.csv
-# Todas las carpetas son las GENERALES del repositorio
-# (Taller_2_BDML_Aragon_Cadena_Florez/03_Output/...).
-#
-# Tiempo: unos 15 minutos con 2 núcleos (10 modelos de validación cruzada y
-# 2 modelos finales). Todas las funciones están definidas en este script.
-# ==============================================================================
 
-
-# ==============================================================================
-# 0. PAQUETES Y RUTAS
-# ==============================================================================
+##### 0. PAQUETES Y RUTAS #####
 if (!require(pacman)) install.packages("pacman")
 pacman::p_load(here,       # Rutas relativas a la raíz del proyecto.
                tidyverse,  # Manejo de datos.
@@ -54,10 +23,6 @@ pacman::p_load(here,       # Rutas relativas a la raíz del proyecto.
                lightgbm,   # LightGBM.
                xgboost)    # XGBoost (versión 3).
 
-# here() devuelve la raíz del proyecto: la carpeta que contiene
-# Taller_2_BDML_Aragon_Cadena_Florez.Rproj. Se verifica explícitamente para
-# que las salidas vayan SIEMPRE a la carpeta general 03_Output del
-# repositorio, y no a una carpeta personal.
 stopifnot(file.exists(here("Taller_2_BDML_Aragon_Cadena_Florez.Rproj")))
 dir_modelos <- here("03_Output", "Models")        # Taller_2_BDML_Aragon_Cadena_Florez/03_Output/Models
 dir_envios  <- here("03_Output", "Submissions")   # Taller_2_BDML_Aragon_Cadena_Florez/03_Output/Submissions
@@ -69,11 +34,9 @@ nucleos <- max(1, parallel::detectCores() - 1)   # núcleos para LightGBM y XGBo
 fun_paso <- \(.t) message(format(Sys.time(), "%H:%M"), " | ", .t)
 
 
-# ==============================================================================
-# 1. DATOS Y VARIABLES DE BRECHA
-# ==============================================================================
-# Regla de pobreza del DANE (diccionario, "Imputación por propiedad de la
-# vivienda"): un hogar es pobre si el ingreso de su unidad de gasto, INCLUIDO
+###### 1. DATOS Y VARIABLES DE BRECHA #####
+
+# Usamos la regla de pobreza del DANE: un hogar es pobre si el ingreso de su unidad de gasto, INCLUIDO
 # el arriendo imputado, es menor que la línea de pobreza de toda la unidad:
 #
 #     Pobre = 1  <=>  S + R < Lp × Npersug  <=>  S < G,   G = Lp × Npersug − R
@@ -97,15 +60,13 @@ fun_brecha <- function(.hogares) {
                                      pmax(P5130 - P5100, 0)),
         TRUE               ~ 0),
       num_arriendo_imputado = coalesce(num_arriendo_imputado, 0),
-      num_brecha    = Lp * Npersug - num_arriendo_imputado,   # G
-      num_brecha_pc = num_brecha / Npersug)                    # G por persona
+      num_brecha    = Lp * Npersug - num_arriendo_imputado,   
+      num_brecha_pc = num_brecha / Npersug)                    
 }
 
-# Base por hogar (la común del equipo, 01_Data) + variables de brecha:
-#   num_g_rel:           G relativa a la línea de toda la unidad, en log
-#                        (el 0,01 evita log(0)).
-#   bin_brecha_cubierta: 1 si G <= 0, es decir, el arriendo imputado ya cubre
-#                        la línea (~9 % de los hogares, casi nunca pobres).
+# Base por hogar (la común del equipo, a saber, 01_Data) + variables de brecha:
+#   num_g_rel          
+#   bin_brecha_cubierta
 fun_base <- function(.muestra) {
   readRDS(here("02_Data", "Processed", paste0("db_", .muestra, ".rds"))) |>
     inner_join(fun_brecha(readRDS(here("02_Data", "Raw", paste0(.muestra, "_hogares.rds")))),
@@ -119,7 +80,7 @@ stopifnot(nrow(db_train) == 164960, nrow(db_test) == 66168,
           !anyNA(db_train), !anyNA(db_test))
 
 y_num     <- as.integer(db_train$Pobre == "Yes")    # 1 = pobre
-es_bogota <- db_train$cat_dominio == "BOGOTA"       # test no tiene Bogotá
+es_bogota <- db_train$cat_dominio == "BOGOTA"       # test set no tiene Bogotá
 eval_ok   <- !es_bogota                              # hogares con que se evalúa
 
 # Predictores: todas las columnas salvo id y Pobre. Cada algoritmo pide su
@@ -128,7 +89,7 @@ df_train <- db_train |> select(-id)
 df_test  <- db_test  |> select(-id)
 
 # (a) LightGBM: matriz numérica con los factores como códigos enteros, que
-#     LightGBM trata como categorías nativas. Se verifica que los niveles de
+#     LightGBM trata como categorías nativas. Verificamos que los niveles de
 #     cada factor sean idénticos en train y test, para que el código 7 sea la
 #     misma región en las dos bases.
 vars_cat <- names(select(df_test, where(is.factor)))
@@ -139,20 +100,19 @@ X_lgb      <- fun_matriz_lgb(df_train)
 X_lgb_test <- fun_matriz_lgb(df_test)
 
 # (b) XGBoost: matriz de dummies (una columna por nivel de cada factor, menos
-#     la categoría de referencia), con las mismas columnas en train y test.
+#     la categoría de referencia para evitar multicolinealidad perfecta),
+# con las mismas columnas en train y test.
 terminos   <- terms(Pobre ~ ., data = df_train)
 X_xgb      <- model.matrix(terminos, data = df_train)[, -1]
 X_xgb_test <- model.matrix(delete.response(terminos), data = df_test)[, -1]
 stopifnot(identical(colnames(X_xgb), colnames(X_xgb_test)))
 
 
-# ==============================================================================
-# 2. VALIDACIÓN CRUZADA
-# ==============================================================================
-# 5 folds estratificados por Pobre (cada fold conserva el 20 % de pobres),
+##### 2. VALIDACIÓN CRUZADA #####
+# Hicimos 5 folds estratificados por Pobre (cada fold conserva el 20 % de pobres),
 # semilla 2026: la misma partición que usan los demás modelos del proyecto.
 # Por eso las predicciones fuera de muestra de este script se pueden combinar
-# hogar por hogar con las de otros modelos (lo hace el script 25).
+# hogar por hogar con las de otros modelos 
 set.seed(semilla)
 folds <- createFolds(db_train$Pobre, k = 5, returnTrain = TRUE)  # filas de ENTRENAMIENTO de cada fold
 fold  <- integer(nrow(db_train))                                 # fold de validación de cada hogar
@@ -161,17 +121,15 @@ for (k in seq_along(folds)) fold[-folds[[k]]] <- k
 # ---- (a) LightGBM monótono ---------------------------------------------------
 # Restricciones monótonas: la probabilidad de pobreza solo puede subir (+1) o
 # solo bajar (−1) con cada una de estas variables, manteniendo las demás
-# fijas. Es teoría económica convertida en regularización: el modelo no puede
-# aprender, por azar, que más educación del jefe aumenta la pobreza. Solo se
-# restringen variables con signo inequívoco; las demás quedan libres (0).
+# fijas. 
 signos <- c(
   num_g_rel = +1, num_brecha_pc = +1,      # más ingreso faltante => más pobreza
   num_log_arriendo_pc = -1,                # más valor de la vivienda por persona => menos
   num_head_educ = -1, num_max_educ = -1, num_mean_educ_adults = -1,   # capital humano
   num_ocupados = -1, num_cotizantes = -1, prop_cotizantes_ocup = -1,  # empleo y formalidad
   num_horas_pc = -1,                       # horas trabajadas por persona
-  num_minors = +1, num_personas_cuarto = +1,   # más bocas, más hacinamiento
-  bin_any_pension = -1, bin_any_arriendos_pensiones = -1              # ingresos no laborales
+  num_minors = +1, num_personas_cuarto = +1,   # más bocas que alimentar, más hacinamiento
+  bin_any_pension = -1, bin_any_arriendos_pensiones = -1  # ingresos no laborales
 )
 stopifnot(all(names(signos) %in% colnames(X_lgb)))
 monotono <- unname(ifelse(colnames(X_lgb) %in% names(signos), signos[colnames(X_lgb)], 0))
@@ -179,7 +137,7 @@ monotono <- unname(ifelse(colnames(X_lgb) %in% names(signos), signos[colnames(X_
 # Hiperparámetros elegidos en la comparación de modelos:
 #   num_leaves = 15, 1.500 árboles, tasa de aprendizaje 0,03;
 #   min_data_in_leaf = 100 (hojas con al menos 100 hogares);
-#   lambda_l2 = 5 (penaliza pesos de hoja grandes, como Ridge);
+#   lambda_l2 = 5 (penaliza pesos de hoja grandes, como vimos en Ridge);
 #   feature_fraction = 0,7 y bagging_fraction = 0,8: cada árbol ve el 70 % de
 #   las columnas y el 80 % de los hogares (aleatoriedad que reduce varianza).
 #   deterministic = TRUE: mismo resultado en cada corrida aunque se usen
@@ -215,8 +173,7 @@ fun_xgb <- function(.filas) {
 }
 
 # ---- Predicciones fuera de muestra (OOF) ---------------------------------------
-# Para cada fold k: se entrena con los otros 4 y se predice el fold k. Al
-# final, cada hogar tiene una probabilidad de un modelo que nunca lo vio.
+# Para cada fold k: se entrena con los otros 4 y se predice el fold k. 
 oof_lgb <- oof_xgb <- rep(NA_real_, nrow(db_train))
 for (k in seq_along(folds)) {
   fuera <- which(fold == k)                 # hogares del fold k (validación)
@@ -226,12 +183,12 @@ for (k in seq_along(folds)) {
   oof_xgb[fuera] <- predict(fun_xgb(folds[[k]]), xgb.DMatrix(X_xgb[fuera, ]))
 }
 stopifnot(!anyNA(oof_lgb), !anyNA(oof_xgb))
-oof_prom <- (oof_lgb + oof_xgb) / 2         # el promedio que se envía
+oof_prom <- (oof_lgb + oof_xgb) / 2         # este es el promedio que se envía
 
 
-# ==============================================================================
-# 3. UMBRAL Y F1
-# ==============================================================================
+
+##### 3. UMBRAL Y F1 #####
+
 # F1 = 2 TP / (2 TP + FP + FN) = 2 TP / (predichos pobres + pobres reales).
 fun_f1 <- function(.p, .y, .u) {
   pred <- .p >= .u
@@ -244,10 +201,10 @@ fun_mejor <- function(.p, .filas = which(eval_ok)) {
   f <- map_dbl(grid_u, \(u) fun_f1(.p[.filas], y_num[.filas] == 1, u))
   list(umbral = grid_u[which.max(f)], F1 = max(f))
 }
-# F1 honesto (cross-fitting): el umbral para los hogares del fold k se elige
+# F1: el umbral para los hogares del fold k se elige
 # con los otros 4 folds; luego se juntan las clasificaciones de los 5 folds.
 # Ningún hogar se clasifica con un umbral que se haya elegido mirando su
-# etiqueta, igual que en el test privado.
+# etiqueta (para acercarnos a lo que sucede  en el test privado)
 fun_honesto <- function(.p) {
   pred <- rep(NA, length(.p))
   for (k in 1:5) {
@@ -264,13 +221,9 @@ resumen <- imap_dfr(list(lgb_monotono = oof_lgb, xgb_brecha = oof_xgb, promedio 
                                      F1_honesto = fun_honesto(p)) })
 print(resumen)
 umbral <- resumen$umbral[resumen$modelo == "promedio"]
-# Lectura esperada: los dos modelos solos ~0,762; el promedio ~0,764 con un
-# F1 honesto casi igual (la elección del umbral no está sobreajustada).
 
+##### 4. MODELOS FINALES Y PROBABILIDADES DE TEST #####
 
-# ==============================================================================
-# 4. MODELOS FINALES Y PROBABILIDADES DE TEST
-# ==============================================================================
 # Con la configuración y el umbral ya fijos, cada modelo se re-entrena con
 # TODO train (más datos, mejor modelo) y predice test.
 todas <- seq_len(nrow(db_train))
@@ -280,10 +233,7 @@ fun_paso("Modelo final: XGBoost con brecha")
 test_xgb <- predict(fun_xgb(todas), xgb.DMatrix(X_xgb_test))
 test_prom <- (test_lgb + test_xgb) / 2
 
-
-# ==============================================================================
-# 5. GUARDAR RESULTADOS Y ENVÍO
-# ==============================================================================
+##### 5. GUARDAR RESULTADOS Y ENVÍO #####
 # .rds con las OOF y las probabilidades de test de cada pieza. El script 25
 # usa la parte de LightGBM monótono para el ensamble con el modelo de ingreso.
 saveRDS(list(resumen = resumen,
@@ -295,17 +245,12 @@ saveRDS(list(resumen = resumen,
                                 prob = test_prom)),
         file.path(dir_modelos, "prom_lgbm_xgb.rds"))
 
-# Envío: id y pobre (0/1). Antes de escribir se valida contra
-# sample_submission.csv (mismas filas, mismos id, sin vacíos), para no gastar
-# un envío diario de Kaggle en un archivo mal formado.
+# Envío: id y pobre (0/1).
 fun_etiqueta_num <- \(.x) gsub(".", "_", trimws(formatC(.x, format = "fg", digits = 4)), fixed = TRUE)
 envio <- tibble(id = db_test$id, pobre = as.integer(test_prom >= umbral))
 muestra <- read.csv(here("02_Data", "Raw", "sample_submission.csv"))
 stopifnot(nrow(envio) == nrow(muestra), setequal(envio$id, muestra$id), !anyNA(envio$pobre))
 
-# El prefijo PROM_LGBM_XGB_ no lo usa ningún otro script del proyecto, así que
-# el archivo no puede pisar el envío de otro modelo. Si ya existe, es una
-# versión anterior de ESTE mismo script y se reemplaza.
 ruta_envio <- file.path(dir_envios, paste0("PROM_LGBM_XGB_umbral_", fun_etiqueta_num(umbral), ".csv"))
 if (file.exists(ruta_envio)) message("Se reemplaza la versión anterior de: ", basename(ruta_envio))
 write.csv(envio, ruta_envio, row.names = FALSE)
