@@ -1,5 +1,5 @@
 # ==============================================================================
-# 05_eda.R
+# 12_exploracion_integral.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: exploración inicial de db_train para entender qué variables se
@@ -14,11 +14,11 @@ pacman::p_load(here, tidyverse, scales)
 
 source(here("01_Scripts", "00_utils.R"))
 
-dir.create(here("Aragon","03_Output", "Figures"), recursive = TRUE, showWarnings = FALSE)
-dir.create(here("Aragon","03_Output", "Tables"),  recursive = TRUE, showWarnings = FALSE)
+dir.create(here("03_Output", "Figures"), recursive = TRUE, showWarnings = FALSE)
+dir.create(here("03_Output", "Tables"),  recursive = TRUE, showWarnings = FALSE)
 
-fig_path <- \(name) here("Aragon","03_Output", "Figures", name)
-tab_path <- \(name) here("Aragon","03_Output", "Tables",  name)
+fig_path <- \(name) here("03_Output", "Figures", name)
+tab_path <- \(name) here("03_Output", "Tables",  name)
 
 db_train <- readRDS(here("02_Data", "Processed", "db_train.rds"))
 db_test  <- readRDS(here("02_Data", "Processed", "db_test.rds"))

@@ -1,5 +1,5 @@
 # ==============================================================================
-# 13_tabla_comparacion.R
+# 16_tabla_comparacion.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: armar, con la MISMA regla para todos los modelos, la tabla y las

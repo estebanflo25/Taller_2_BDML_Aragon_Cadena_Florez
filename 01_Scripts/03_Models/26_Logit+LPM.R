@@ -1,5 +1,5 @@
 # ==============================================================================
-# 26_Logit.R
+# 26_logit_lpm.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: clasificar hogares de test como pobres / no pobres con dos modelos:

@@ -1,5 +1,5 @@
 # ==============================================================================
-# 28_Logit_Simple.R
+# 27_Logit_Simple.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: comparar seis logits con los mismos folds y la misma regla de umbral:
