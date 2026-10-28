@@ -44,9 +44,9 @@ Taller_2_BDML_Aragon_Cadena_Florez/
 │   ├── 00_MasterScript.R        # corre todo el pipeline, etapa por etapa
 │   ├── 00_utils.R               # funciones comunes: base, folds, umbral, envíos, formato, etiquetas
 │   ├── 01_Data/                 # 01-04 base de hogares; 05-06 bases de ingreso (solo objetivo)
-│   ├── 02_EDA/                  # 01-11 tablas y figuras descriptivas
+│   ├── 02_EDA/                  # 01-12 tablas y figuras descriptivas
 │   ├── 03_Models/               # 01-31 modelos, ensambles y envíos a Kaggle
-│   └── 04_Results/              # 01-15 tablas y figuras de las presentaciones
+│   └── 04_Results/              # 01-16 tablas y figuras de las presentaciones
 ├── 02_Data/
 │   ├── Raw/                     # .rds de Kaggle (los CSV de más de 100 MB no se suben)
 │   └── Processed/               # db_{train,test}, db_ingreso_*, db_personas_*, componentes
@@ -59,7 +59,6 @@ Taller_2_BDML_Aragon_Cadena_Florez/
 └── 04_Slides/
     ├── best_equipo_01.pdf       # Best Model Deep Dive
     ├── compare_equipo_01.pdf    # Algorithm Comparison
-    ├── guion_*.html             # guion de 15 minutos de cada deck
     └── *.tex                    # fuentes de Beamer (estilo, arquitectura, diapositiva común)
 ```
 
@@ -90,7 +89,7 @@ Paquetes principales: `tidyverse`, `caret`, `glmnet`, `rpart`, `ranger`, `xgboos
 
 ### 02_EDA: análisis descriptivo
 
-Tablas de resumen, desbalance, descriptivas y poder predictivo individual (AUC), y figuras de ciclo de vida, educación por formalidad, dependencia, posición ocupacional, preguntas binarias, arriendo frente a la línea y territorio.
+Tablas de resumen, desbalance, descriptivas y poder predictivo individual (AUC, área bajo la curva ROC), figuras de ciclo de vida, educación por formalidad, dependencia, posición ocupacional, preguntas binarias, arriendo frente a la línea y territorio, y una exploración integral de asociaciones y densidades (`12_exploracion_integral.R`).
 
 ### 03_Models: modelos
 
@@ -115,8 +114,8 @@ Todos los modelos usan `fun_folds()` (5 folds estratificados, semilla 2026) y el
 | `02_fig_escalera.R` | `fig_escalera.pdf`: F1 por modelo, separando algoritmo e información |
 | `03_fig_umbral.R` | `fig_curvas_umbral.pdf`, `fig_umbral_teoria.pdf` (umbral óptimo = F1/2) |
 | `04_fig_campo_nivelado.R` | `tab_campo_nivelado.tex`, `fig_distancia_linea.pdf`, `fig_f1_grupos.pdf` |
-| `05_fig_importancia.R` | `fig_importancia_clasificador.pdf`, `fig_importancia_componentes.pdf`, `tab_componentes.tex` |
-| `06_fig_ingreso_sigma.R` | `fig_z_separacion.pdf`, `fig_sigma.pdf` |
+| `05_fig_importancia.R` | `fig_importancia_clasificador.pdf`, `fig_importancia_componentes.pdf`, `fig_importancia_mejor.pdf`, `tab_componentes.tex` |
+| `06_fig_ingreso_sigma.R` | `fig_z_separacion.pdf`, `fig_sigma.pdf`, `fig_indice_ingreso.pdf` |
 | `07_politica_errores.R` | `tab_confusion.tex`, `tab_escenarios.tex`, `fig_fuga_subcobertura.pdf` |
 | `08_fig_cv_kaggle.R` | `fig_cv_kaggle.pdf`: validación cruzada frente a Kaggle |
 | `09_fig_parsimonia.R` | `fig_parsimonia.pdf`: F1 con encuestas cortas |
@@ -126,6 +125,7 @@ Todos los modelos usan `fun_folds()` (5 folds estratificados, semilla 2026) y el
 | `13_tab_cercanos.R` | `tab_cercanos.tex`: los modelos más cercanos al mejor en Kaggle y la información que usa cada uno |
 | `14_fig_proceso.R` | `fig_proceso.pdf`: los 21 envíos en orden y el mejor F1 alcanzado en cada etapa |
 | `15_tab_cercanos_detalle.R` | `tab_cercanos_detalle.tex`: el mejor modelo frente a los dos que le siguen, hogar por hogar |
+| `16_tablas_compare.R` | `comparacion_modelos_deck2.csv`, `ablacion_sigma_23.csv`, `pesos_top_18.csv` y figuras `deck2_*.png` (tablas de apoyo para la comparación) |
 
 ## Hallazgos principales
 

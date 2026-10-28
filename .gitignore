@@ -5,3 +5,10 @@
 .DS_Store
 02_Data/Raw/*.csv
 !02_Data/Raw/sample_submission.csv
+# LaTeX
+04_Slides/*.aux
+04_Slides/*.log
+04_Slides/*.nav
+04_Slides/*.out
+04_Slides/*.snm
+04_Slides/*.toc

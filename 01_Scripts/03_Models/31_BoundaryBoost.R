@@ -1,5 +1,5 @@
 # ==============================================================================
-# 31_Boundary_Boost.R
+# 31_BoundaryBoost.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: mejorar los errores cerca de la línea de pobreza partiendo de
