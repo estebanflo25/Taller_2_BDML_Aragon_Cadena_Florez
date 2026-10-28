@@ -1,0 +1,16 @@
+p_clas,p_ing,p_pxgb,p_plgb,p_rf,F1,umbral,n_modelos,modelos
+0.4,0,0,0.6,0,0.7723043719193864,0.38,2,Clasificación + Personas LGB
+0.3,0.1,0,0.6,0,0.7722792668216187,0.39,3,Clasificación + Ingreso hogar + Personas LGB
+0.4,0,0.1,0.5,0,0.7722151954584228,0.39,3,Clasificación + Personas XGB + Personas LGB
+0.3,0.1,0.1,0.5,0,0.7722023625638084,0.39,4,Clasificación + Ingreso hogar + Personas XGB + Personas LGB
+0.3,0,0,0.6,0.1,0.7720796043334903,0.39,3,Clasificación + Personas LGB + RF
+0.3,0.1,0.2,0.4,0,0.7720325394607158,0.39,4,Clasificación + Ingreso hogar + Personas XGB + Personas LGB
+0.3,0,0.1,0.5,0.1,0.7719907923071211,0.4,4,Clasificación + Personas XGB + Personas LGB + RF
+0.4,0,0.2,0.4,0,0.7719095291064145,0.4,3,Clasificación + Personas XGB + Personas LGB
+0.2,0.1,0,0.6,0.1,0.7718683884146786,0.38,4,Clasificación + Ingreso hogar + Personas LGB + RF
+0.3,0.2,0,0.5,0,0.7718493694329306,0.39,3,Clasificación + Ingreso hogar + Personas LGB
+0.3,0,0.2,0.4,0.1,0.7718238332895543,0.38,4,Clasificación + Personas XGB + Personas LGB + RF
+0.2,0.2,0,0.6,0,0.7718141730880584,0.4,3,Clasificación + Ingreso hogar + Personas LGB
+0.2,0.2,0.1,0.5,0,0.7717631137654085,0.39,4,Clasificación + Ingreso hogar + Personas XGB + Personas LGB
+0.2,0.1,0.1,0.5,0.1,0.7717494651770858,0.4,5,Clasificación + Ingreso hogar + Personas XGB + Personas LGB + RF
+0.3,0,0.3,0.4,0,0.77171865803413775,0.39,3,Clasificación + Personas XGB + Personas LGB

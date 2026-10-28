@@ -1,5 +1,5 @@
 # ==============================================================================
-# 05_Blend_Final.R
+# 30_Blend_Final.R
 # Taller 2 - Predicting Poverty | Big Data y Machine Learning (MECA 4107)
 #
 # Objetivo: combinar las probabilidades de los cuatro componentes guardados por
