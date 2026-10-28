@@ -1,0 +1,11 @@
+v1,v2,cor
+num_personas,num_personas_ug,0.9969773203875338
+num_ingreso_requerido,num_personas_ug,0.9668814703689425
+num_ingreso_requerido,num_personas,0.9641978590777507
+prop_ocupados_pet,prop_ocupados_ug,0.9065693027165058
+num_max_educ,num_mean_educ_adults,0.8818781824255317
+num_head_educ,num_mean_educ_adults,0.8796568699407171
+num_horas_pc,prop_ocupados_ug,0.8776386476299031
+num_cotizantes,prop_cotizantes_ocup,0.8423409428841375
+num_empresa_mas5,prop_empresa_mas5_ocup,0.8347641116256238
+num_cotizantes,num_empresa_mas5,0.8158437163150575
