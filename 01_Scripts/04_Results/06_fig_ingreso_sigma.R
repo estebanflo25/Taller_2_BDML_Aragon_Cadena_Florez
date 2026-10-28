@@ -15,7 +15,8 @@
 # Entrada:  03_Output/Models/{lgb_ingreso_personas, lgb_personas_crudas_pesos,
 #           lgb_personas_componentes, ensamble_sigma}.rds
 #           02_Data/Processed/db_{,ingreso_}train.rds
-# Salida:   03_Output/Figures/fig_z_separacion.pdf, fig_sigma.pdf
+# Salida:   03_Output/Figures/fig_z_separacion.pdf, fig_sigma.pdf,
+#           fig_indice_ingreso.pdf (índice y sigma juntos, deck best)
 # ==============================================================================
 
 if (!require(pacman)) install.packages("pacman")
@@ -105,3 +106,27 @@ fig2 <- p1 + p2 + plot_layout(widths = c(1, 1.3)) +
                   subtitle = "Por eso la probabilidad se calibra con z, z/sigma y log(sigma)",
                   theme = theme_taller(12))
 fun_save_fig(fig2, "fig_sigma")
+
+# ------------------------------------------------------------------------------
+# 3. Figura combinada para el deck "best": el índice y su incertidumbre
+# ------------------------------------------------------------------------------
+a <- datos |>
+  filter(brecha_pos) |>
+  ggplot(aes(z, fill = clase, color = clase)) +
+  geom_density(alpha = 0.35, adjust = 1.2) +
+  geom_vline(xintercept = 0, linewidth = 0.8) +
+  annotate("text", x = -0.08, y = 1.1, label = "pobre", hjust = 1, size = 3.4, fontface = "bold") +
+  annotate("text", x = 0.08, y = 1.1, label = "no pobre", hjust = 0, size = 3.4, fontface = "bold") +
+  scale_fill_manual(values = pal_pobreza) + scale_color_manual(values = pal_pobreza) +
+  coord_cartesian(xlim = c(-2, 3), ylim = c(0, 1.15)) +
+  labs(x = "z = log(ingreso predicho) - log(brecha)", y = "Densidad",
+       title = sprintf("1. El índice separa: con z < 0, F1 = %.3f", regla$F1)) +
+  theme_taller(10)
+
+b <- p2 + labs(title = "2. La incertidumbre (sigma) cambia la pendiente") + theme_taller(10)
+
+fig3 <- a + b +
+  plot_annotation(title = "Del ingreso predicho a la probabilidad de ser pobre",
+                  subtitle = "Sigma: el error que esperamos al predecir el ingreso de cada hogar (en log)",
+                  theme = theme_taller(12))
+fun_save_fig(fig3, "fig_indice_ingreso")

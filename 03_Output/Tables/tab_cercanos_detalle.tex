@@ -1,0 +1,15 @@
+
+\begin{threeparttable}
+\begin{tabular}[t]{llcccccccc}
+\toprule
+Modelo & Qué cambia & F1 CV & Precisión & Recall & Dif. (EE) & Corr. & Cambian & Público & Privado\\
+\midrule
+\textbf{Mejor modelo} & \textbf{Clasificador + ingreso A, B y C} & \textbf{0.7764} & \textbf{0.748} & \textbf{0.806} & \textbf{---} & \textbf{1.000} & \textbf{---} & \textbf{0.77} & \textbf{0.77}\\
+Ingreso A + B con sigma & Sin el ingreso por fuentes (C) & 0.7755 & 0.747 & 0.807 & -0.0009 (0.0006) & 0.999 & 0.7 \% & 0.77 & 0.78\\
+LightGBM monótono + índice & LightGBM monótono (0.2) + índice (0.8) & 0.7762 & 0.754 & 0.800 & -0.0001 (0.0007) & 0.999 & 0.8 \% & 0.77 & 0.77\\
+\bottomrule
+\end{tabular}
+\begin{tablenotes}
+\item Mismos 5 grupos de validación. Dif. (EE): diferencia de F1 con el mejor, pareada por grupo, y su error estándar. Corr.: correlación de probabilidades con el mejor. Cambian: \% de hogares clasificados distinto que con el mejor.
+\end{tablenotes}
+\end{threeparttable}

@@ -15,13 +15,14 @@
 #
 # Entrada:  03_Output/Models/{xgb_aleatoriedad, lgb_personas_componentes}.rds
 #           02_Data/Processed/componentes_ingreso_train.rds
-# Salida:   03_Output/Figures/fig_importancia_clasificador.pdf,
+# Salida:   03_Output/Figures/fig_importancia_mejor.pdf (las dos partes juntas),
+#           fig_importancia_clasificador.pdf,
 #           fig_importancia_componentes.pdf
 #           03_Output/Tables/tab_componentes.tex
 # ==============================================================================
 
 if (!require(pacman)) install.packages("pacman")
-pacman::p_load(here, tidyverse)
+pacman::p_load(here, tidyverse, patchwork)
 source(here("01_Scripts", "00_utils.R"))
 
 leer <- \(.f) readRDS(here("03_Output", "Models", .f))
@@ -110,3 +111,39 @@ fig2 <- ggplot(imp_comp, aes(importancia, orden)) +
   theme_taller(10) +
   theme(panel.grid.major.y = element_blank(), strip.text = element_text(face = "bold", hjust = 0, size = 9))
 fun_save_fig(fig2, "fig_importancia_componentes", .height = 5.2)
+
+# ------------------------------------------------------------------------------
+# 3. Figura combinada para el deck "best": las dos partes del mejor modelo
+# ------------------------------------------------------------------------------
+izq <- imp_clas |>
+  slice_max(importancia, n = 8) |>
+  mutate(etiqueta = fct_reorder(fun_etiqueta(variable), importancia)) |>
+  ggplot(aes(importancia, etiqueta, fill = grupo)) +
+  geom_col(width = 0.7) +
+  geom_text(aes(label = sprintf("%.0f %%", importancia)), hjust = -0.15, size = 3.2) +
+  scale_fill_manual(values = pal_grupos, drop = TRUE) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.2))) +
+  labs(x = "% de la ganancia del modelo", y = NULL, title = "Clasificador del hogar") +
+  theme_taller(10) + theme(panel.grid.major.y = element_blank(), legend.position = "bottom") +
+  guides(fill = guide_legend(nrow = 2))
+
+principal <- imp_comp |>
+  group_by(componente) |> slice_max(importancia, n = 1, with_ties = FALSE) |> ungroup() |>
+  mutate(fuente = sprintf("%s (%.0f %%): %s",
+                          c(nombres, obj_capital = "Arriendos e intereses")[componente], 100 * peso,
+                          str_to_lower(str_sub(etiqueta, 1, 1)) |> paste0(str_sub(etiqueta, 2))),
+         fuente = fct_reorder(fuente, peso))
+
+der <- ggplot(principal, aes(importancia, fuente)) +
+  geom_col(fill = "#D55E00", width = 0.6) +
+  geom_text(aes(label = sprintf("%.0f %%", importancia)), hjust = -0.15, size = 3.2) +
+  scale_x_continuous(limits = c(0, 125), breaks = seq(0, 100, 25), expand = expansion(mult = c(0, 0))) +
+  labs(x = "% de la ganancia", y = NULL,
+       title = "Ingreso por fuentes: variable principal") +
+  theme_taller(10) + theme(panel.grid.major.y = element_blank())
+
+fig3 <- izq + der + plot_layout(widths = c(1, 1.1)) +
+  plot_annotation(title = "Qué variables usa el mejor modelo",
+                  subtitle = "Entre paréntesis, el peso de cada fuente en el ingreso total de las personas",
+                  theme = theme_taller(12))
+fun_save_fig(fig3, "fig_importancia_mejor")

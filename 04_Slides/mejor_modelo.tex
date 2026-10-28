@@ -5,7 +5,7 @@
 \begin{column}{0.6\textwidth}
 \resizebox{\linewidth}{!}{\input{arquitectura.tex}}
 \par\vspace{0.5em}
-{\scriptsize\textbf{Especificación (boosting):} $P = 0.3\,P_{\text{XGBoost}} + 0.7\,P_{\text{ingreso}}$. $P_{\text{ingreso}}$: promedio de tres LightGBM Tweedie del ingreso de cada persona, sumado por hogar, comparado con la brecha exacta del DANE y calibrado con la incertidumbre $\sigma$ del hogar. Umbral 0.40, elegido por F1 fuera de muestra.\par}
+{\scriptsize\textbf{Especificación (boosting):} $P = 0.3\,P_{\text{XGBoost}} + 0.7\,P_{\text{ingreso}}$. El XGBoost clasifica con 85 variables del hogar. $P_{\text{ingreso}}$: tres LightGBM predicen el ingreso de cada persona; se suma por hogar, se promedian y se compara con la brecha del hogar; un logit lo convierte en probabilidad según qué tan incierta es la predicción ($\sigma$). Pobre si $P \geq 0.40$.\par}
 \end{column}
 \begin{column}{0.38\textwidth}
 \centering
@@ -17,6 +17,8 @@
 \item El desbalance se maneja con el \alert{umbral}, no rebalanceando.
 \item Sin el módulo de ingresos, una encuesta corta cae a \alert{F1 0.69}.
 \end{enumerate}}
+\par\vspace{0.3em}
+{\tiny Cuatro envíos empatan en 0.77 en el público (Kaggle muestra 2 decimales); entre ellos, el CV difiere en menos de 0.001, menos que su error estándar. Presentamos el que el equipo seleccionó.\par}
 \end{column}
 \end{columns}
 \end{frame}

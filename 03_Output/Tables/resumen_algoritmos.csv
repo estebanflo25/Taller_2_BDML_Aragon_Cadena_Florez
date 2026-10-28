@@ -1,8 +1,8 @@
 algoritmo,especificacion,archivo,umbral,precision,recall,F1,f1_publico,f1_privado
 LPM,MCO con todas las variables,LPM_umbral_0_37.csv,0.37,0.6595009794824208,0.7747698643410853,0.7125034809245336,0.71,0.71
-Logit,Todas las variables menos 8 redundantes,logit_umbral_0_37.csv,0.37,0.7056941072610903,0.7745881782945736,0.738537937406167,0.73,0.74
-Elastic Net,"$\alpha = 0.9$, $\lambda = 0.0003$",EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv,0.36000000000000004,0.6995068552538882,0.781734496124031,0.7383383383383383,0.73,0.74
-CART,$cp = 0.00013$ (420 hojas),CART_cp_0_00013_umbral_0_3.csv,0.3,0.7026961746324084,0.7047601744186046,0.7037266611232897,0.7,0.71
-Random Forest,"mtry = 65, hoja mín. 10, 300 árboles",RF_mtry_65_minnode_10_ntree_300_umbral_0_37.csv,0.37,0.6997009939929424,0.7865491763565892,0.7405876231342753,0.73,0.74
-Boosting,"XGBoost: prof. 6, $\eta = 0.05$, 800 árboles",XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv,0.36000000000000004,0.7175986886303174,0.8086240310077519,0.760396941782821,0.76,0.76
-Mejor modelo,0.3 XGBoost + 0.7 ingreso de personas (LightGBM) con $\sigma$,ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv,0.4,0.7484262589928058,0.8064437984496124,0.7763526119402986,0.77,0.77
+Logit,85 variables menos 8 redundantes,logit_umbral_0_37.csv,0.37,0.7056941072610903,0.7745881782945736,0.738537937406167,0.73,0.74
+Elastic Net,"Mezcla L1/L2 $\alpha = 0.9$, penalización $\lambda = 0.0003$",EN_lambda_0_0003_alpha_0_9_umbral_0_36.csv,0.36000000000000004,0.6995068552538882,0.781734496124031,0.7383383383383383,0.73,0.74
+CART,Un árbol podado a 420 hojas,CART_cp_0_00013_umbral_0_3.csv,0.3,0.7026961746324084,0.7047601744186046,0.7037266611232897,0.7,0.71
+Random Forest,"300 árboles, 65 variables candidatas por corte",RF_mtry_65_minnode_10_ntree_300_umbral_0_37.csv,0.37,0.6997009939929424,0.7865491763565892,0.7405876231342753,0.73,0.74
+Boosting,XGBoost: 800 árboles de profundidad 6,XGB_depth_6_mcw_20_eta_0_05_col_0_7_sub_0_8_nrounds_800_umbral_0_36.csv,0.36000000000000004,0.7175986886303174,0.8086240310077519,0.760396941782821,0.76,0.76
+Mejor modelo,0.3 XGBoost + 0.7 índice de ingreso de las personas,ENS_clas_0_3_personas_17_20_22_sigma_umbral_0_4.csv,0.4,0.7484262589928058,0.8064437984496124,0.7763526119402986,0.77,0.77

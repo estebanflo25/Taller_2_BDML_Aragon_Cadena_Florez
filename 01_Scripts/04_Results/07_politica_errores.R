@@ -4,8 +4,10 @@
 # Equipo 1: Aragón, Cadena, Flórez
 #
 # Objetivo: los errores del mejor modelo en términos de política.
-#   - Falso negativo = hogar pobre excluido del programa (subcobertura).
-#   - Falso positivo = hogar no pobre que recibe el beneficio (fuga).
+#   - Falso negativo = hogar pobre que queda por fuera del programa: error de
+#     exclusión (subcobertura).
+#   - Falso positivo = hogar no pobre que recibe el beneficio: error de
+#     inclusión (filtración o fuga).
 #   1. tab_confusion: matriz de confusión fuera de muestra con el umbral que
 #      maximiza el F1.
 #   2. fig_fuga_subcobertura: fuga y subcobertura según el umbral.
@@ -60,8 +62,8 @@ escenarios <- tibble(escenario = c("Prioriza cobertura", "Maximiza el F1 (Kaggle
 print(escenarios)
 
 largo <- curva |>
-  select(umbral, `Subcobertura (FN / pobres)` = subcobertura,
-         `Fuga (FP / marcados)` = fuga, F1) |>
+  select(umbral, `Error de exclusión: % de los pobres que quedan por fuera` = subcobertura,
+         `Error de inclusión: % de los beneficiarios que no son pobres` = fuga, F1) |>
   pivot_longer(-umbral, names_to = "medida", values_to = "valor")
 
 fig <- ggplot(largo, aes(umbral, valor, color = medida)) +
@@ -69,11 +71,13 @@ fig <- ggplot(largo, aes(umbral, valor, color = medida)) +
   geom_label(data = escenarios, aes(x = umbral, y = 1.02, label = str_replace(escenario, " ", "\n")),
              inherit.aes = FALSE, size = 3, color = "grey25", label.size = 0, fill = "white", lineheight = 0.9) +
   geom_line(linewidth = 1.1) +
-  scale_color_manual(values = c("Subcobertura (FN / pobres)" = "#D55E00",
-                                "Fuga (FP / marcados)" = "#0072B2", "F1" = "grey30")) +
+  scale_color_manual(values = c("Error de exclusión: % de los pobres que quedan por fuera" = "#D55E00",
+                                "Error de inclusión: % de los beneficiarios que no son pobres" = "#0072B2",
+                                "F1" = "grey30")) +
+  guides(color = guide_legend(ncol = 1)) +
   scale_y_continuous(labels = percent_format(accuracy = 1), limits = c(0, 1.1), breaks = seq(0, 1, 0.25)) +
   labs(x = "Umbral de clasificación", y = NULL,
-       title = "Bajar el umbral incluye más pobres, pero también más no pobres",
+       title = "Menos exclusión de pobres implica más inclusión de no pobres",
        subtitle = "Mejor modelo, predicciones fuera de muestra: tres umbrales para tres objetivos de política") +
   theme_taller(12)
 fun_save_fig(fig, "fig_fuga_subcobertura")
@@ -81,11 +85,11 @@ fun_save_fig(fig, "fig_fuga_subcobertura")
 escenarios |>
   transmute(Escenario = escenario, Umbral = sprintf("%.2f", umbral),
             `Hogares marcados` = sprintf("%.0f %%", 100 * marcados),
-            `Subcobertura` = sprintf("%.0f %%", 100 * subcobertura),
-            `Fuga` = sprintf("%.0f %%", 100 * fuga),
+            `Error de exclusión` = sprintf("%.0f %%", 100 * subcobertura),
+            `Error de inclusión` = sprintf("%.0f %%", 100 * fuga),
             F1 = sprintf("%.3f", F1)) |>
   kbl(format = "latex", booktabs = TRUE, linesep = "", align = c("l", rep("c", 5))) |>
   row_spec(2, bold = TRUE) |>
-  footnote(general = "Subcobertura: % de los pobres que el modelo deja por fuera. Fuga: % de los marcados que no son pobres. 20 % de los hogares son pobres.",
+  footnote(general = "Exclusión: % de los hogares pobres que el modelo deja por fuera. Inclusión: % de los hogares marcados como pobres que no lo son.",
            general_title = "", threeparttable = TRUE) |>
   fun_save_tab("tab_escenarios")
