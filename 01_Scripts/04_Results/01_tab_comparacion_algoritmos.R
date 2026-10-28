@@ -81,11 +81,11 @@ kbl(tab, format = "latex", booktabs = TRUE, linesep = "", escape = FALSE,
 # ------------------------------------------------------------------------------
 tab_env <- kaggle |>
   arrange(desc(f1_cv)) |>
-  transmute(Modelo = modelo, Algoritmo = algoritmo, `Envió` = enviado_por,
+  transmute(Modelo = modelo, Algoritmo = algoritmo,
             `F1 CV` = sprintf("%.3f", f1_cv), `Público` = sprintf("%.2f", f1_publico),
             Privado = sprintf("%.2f", f1_privado))
 
-kbl(tab_env, format = "latex", booktabs = TRUE, linesep = "", align = c("l", "l", "l", "c", "c", "c")) |>
+kbl(tab_env, format = "latex", booktabs = TRUE, linesep = "", align = c("l", "l", "c", "c", "c")) |>
   kable_styling(font_size = 7) |>
   row_spec(which(kaggle |> arrange(desc(f1_cv)) |> pull(seleccionado) == 1), bold = TRUE) |>
   fun_save_tab("tab_envios")

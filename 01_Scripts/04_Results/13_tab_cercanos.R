@@ -38,10 +38,10 @@ tabla <- info |>
 print(tabla |> select(nombre, ingreso, f1_cv, f1_publico, f1_privado))
 
 tabla |>
-  transmute(Modelo = nombre, `Ingreso que usa` = ingreso, `Envió` = enviado_por,
+  transmute(Modelo = nombre, `Ingreso que usa` = ingreso,
             `F1 CV` = sprintf("%.4f", f1_cv), `Público` = sprintf("%.2f", f1_publico),
             Privado = sprintf("%.2f", f1_privado)) |>
-  kbl(format = "latex", booktabs = TRUE, linesep = "", align = c("l", "l", "l", "c", "c", "c")) |>
+  kbl(format = "latex", booktabs = TRUE, linesep = "", align = c("l", "l", "c", "c", "c")) |>
   row_spec(1, bold = TRUE) |>
   row_spec(4, hline_after = TRUE) |>
   footnote(general = "Todos son modelos de boosting (XGBoost o LightGBM). Kaggle muestra dos decimales: los cuatro primeros empatan en el público.",

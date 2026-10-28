@@ -1,24 +1,24 @@
 % Diapositiva obligatoria: el mejor modelo (igual en los dos decks)
-\begin{frame}{El mejor modelo en una diapositiva}
-\mensaje{Clasificamos con un índice de ingreso construido desde las personas}
+\begin{frame}{Nuestro mejor modelo}
+\vspace{-0.3em}
+\begin{center}
+\resizebox{0.76\linewidth}{!}{\input{arquitectura.tex}}
+\end{center}
+\vspace{-0.4em}
 \begin{columns}[T]
-\begin{column}{0.6\textwidth}
-\resizebox{\linewidth}{!}{\input{arquitectura.tex}}
-\par\vspace{0.5em}
+\begin{column}{0.5\textwidth}
 {\scriptsize\textbf{Especificación (boosting):} $P = 0.3\,P_{\text{XGBoost}} + 0.7\,P_{\text{ingreso}}$. El XGBoost clasifica con 85 variables del hogar. $P_{\text{ingreso}}$: tres LightGBM predicen el ingreso de cada persona; se suma por hogar, se promedian y se compara con la brecha del hogar; un logit lo convierte en probabilidad según qué tan incierta es la predicción ($\sigma$). Pobre si $P \geq 0.40$.\par}
 \end{column}
-\begin{column}{0.38\textwidth}
+\begin{column}{0.48\textwidth}
 \centering
-\cifra{0.77}{Kaggle público}\hspace{0.6em}\cifra{0.77}{Kaggle privado}\hspace{0.6em}\cifra{0.776}{F1 CV}
-\par\vspace{0.6em}\raggedright
-{\footnotesize
-\begin{enumerate}\setlength\itemsep{0.25em}
+\cifra{0.77}{Kaggle público}\hspace{1em}\cifra{0.77}{Kaggle privado}\hspace{1em}\cifra{0.776}{F1 validación cruzada}
+\par\vspace{0.3em}\raggedright
+{\scriptsize
+\begin{enumerate}\setlength\itemsep{0em}
 \item \alert{Predecir el ingreso de cada persona} vale más que cambiar de algoritmo.
 \item El desbalance se maneja con el \alert{umbral}, no rebalanceando.
 \item Sin el módulo de ingresos, una encuesta corta cae a \alert{F1 0.69}.
 \end{enumerate}}
-\par\vspace{0.3em}
-{\tiny Cuatro envíos empatan en 0.77 en el público (Kaggle muestra 2 decimales); entre ellos, el CV difiere en menos de 0.001, menos que su error estándar. Presentamos el que el equipo seleccionó.\par}
 \end{column}
 \end{columns}
 \end{frame}

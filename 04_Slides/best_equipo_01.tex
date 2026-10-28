@@ -5,7 +5,7 @@
 % ==============================================================================
 \documentclass[aspectratio=169, 10pt]{beamer}
 \input{estilo.tex}
-\subtitle{Best Model Deep Dive: un clasificador con un índice de ingreso}
+\subtitle{Best Model Deep Dive}
 
 \begin{document}
 
@@ -18,26 +18,32 @@
 \section{Datos}
 
 \begin{frame}{La pobreza es una regla sobre el ingreso, y 1 de cada 5 hogares es pobre}
+\vspace{-0.4em}
 \begin{columns}[c]
-\begin{column}{0.55\textwidth}
+\begin{column}{0.58\textwidth}
 \includegraphics[width=\linewidth]{fig_desbalance.pdf}
 \end{column}
-\begin{column}{0.43\textwidth}
-\begin{block}{Regla oficial del DANE, reescrita por nosotros}
+\begin{column}{0.4\textwidth}
+\begin{block}{Regla oficial del DANE, reescrita}
 \centering
 $\text{Pobre} = 1 \iff S < G$
 \par\vspace{0.3em}\raggedright
-{\small $S = \sum_{j \in UG} \text{Ingtot}_j$: ingreso de las personas\\
+{\footnotesize $S = \sum_{j \in UG} \text{Ingtot}_j$: ingreso de las personas\\
 $G = L_p \times N_{ug} - R$: brecha ($R$: arriendo imputado)\\
-Reconstruida con los datos: reproduce el \alert{99.99 \%} de la pobreza de train.}
+Reproduce el \alert{99.99 \%} de la pobreza de train.}
 \end{block}
-\vspace{0.3em}
-\small
-\begin{itemize}
-\item \textbf{$G$ se conoce en test} (línea, personas y arriendo): solo hay que predecir $S$.
-\item \textbf{$S$ vive en las personas}: el ingreso es la suma de lo que gana cada miembro.
-\item \textbf{Desbalance:} 20 \% pobres. Con F1, predecir ``nadie es pobre'' da 0.
-\end{itemize}
+\end{column}
+\end{columns}
+\vspace{0.5em}
+\begin{columns}[T]
+\begin{column}{0.32\textwidth}\footnotesize
+\textbf{$G$ se conoce en test} (línea, personas y arriendo): solo hay que predecir $S$.
+\end{column}
+\begin{column}{0.32\textwidth}\footnotesize
+\textbf{$S$ vive en las personas}: el ingreso es la suma de lo que gana cada miembro.
+\end{column}
+\begin{column}{0.32\textwidth}\footnotesize
+\textbf{Desbalance:} 20 \% pobres. Con F1, predecir ``nadie es pobre'' da 0.
 \end{column}
 \end{columns}
 \end{frame}
@@ -82,11 +88,11 @@ Reconstruida con los datos: reproduce el \alert{99.99 \%} de la pobreza de train
 
 \begin{frame}{Cómo llegamos aquí: 21 envíos, cuatro etapas}
 \begin{columns}[c]
-\begin{column}{0.66\textwidth}
+\begin{column}{0.72\textwidth}
 \includegraphics[width=\linewidth]{fig_proceso.pdf}
 \end{column}
-\begin{column}{0.32\textwidth}
-\small
+\begin{column}{0.27\textwidth}
+\footnotesize
 \textbf{Reglas que mantuvimos en todo el proceso}
 \begin{itemize}\setlength\itemsep{0.25em}
 \item Los mismos 5 grupos de validación para todos los modelos.
@@ -112,10 +118,34 @@ Reconstruida con los datos: reproduce el \alert{99.99 \%} de la pobreza de train
 
 \begin{frame}{Del ingreso predicho a la probabilidad de ser pobre}
 \centering
-\includegraphics[height=0.7\textheight]{fig_indice_ingreso.pdf}
-\par\vspace{0.1em}
-{\small $z$: distancia entre el ingreso predicho y la brecha. $\sigma$: el error que esperamos al predecir el ingreso de ese hogar (bajo para un asalariado, alto para un independiente).}
-\[\text{logit}\,P(\text{Pobre}) = b_0 + b_1 z + b_2 \tfrac{z}{\sigma} + b_3 \log\sigma\]
+\includegraphics[height=0.73\textheight]{fig_indice_ingreso.pdf}
+\par\vspace{0.2em}
+{\footnotesize $z$: distancia entre el ingreso predicho y la brecha. $\sigma$: error esperado al predecir el ingreso del hogar.\hspace{1.2em}
+$\text{logit}\,P(\text{Pobre}) = b_0 + b_1 z + b_2 \tfrac{z}{\sigma} + b_3 \log\sigma$}
+\end{frame}
+
+\begin{frame}{Incertidumbre $\sigma$: la misma distancia a la línea no pesa igual en todos los hogares}
+\begin{columns}[c]
+\begin{column}{0.56\textwidth}
+\includegraphics[width=\linewidth]{fig_sigma_posicion.pdf}
+\end{column}
+\begin{column}{0.42\textwidth}
+\begin{block}{Ejemplo: dos hogares con $z = -0.3$}
+\small
+Ingreso predicho 26 \% por debajo de la brecha. Si el error fuera normal, $P(\text{Pobre}) \approx \Phi(-z/\sigma)$:
+\begin{itemize}
+\item Jefe asalariado privado, $\sigma = 0.18$: \alert{0.95}
+\item Jefe patrón, $\sigma = 0.33$: \alert{0.82}
+\end{itemize}
+\end{block}
+\small
+\begin{itemize}\setlength\itemsep{0.25em}
+\item Cuenta propia y no ocupados: 64 \% de los hogares y el \alert{83 \%} de los pobres, con $\sigma$ alto.
+\item $\sigma$ sube el F1 del ingreso solo de 0.766 a 0.770.
+\item Política: verificar en campo los hogares con $\sigma$ alto.
+\end{itemize}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Importancia: vivienda y trabajo formal en el hogar; posición ocupacional en las personas}
@@ -160,35 +190,66 @@ Reconstruida con los datos: reproduce el \alert{99.99 \%} de la pobreza de train
 % ------------------------------------------------------------------------------
 \section{Implicaciones de política}
 
-\begin{frame}{El F1 elige un punto entre errores de exclusión e inclusión}
+\begin{frame}{Matriz de confusión: 1 de cada 5 pobres queda por fuera}
 \begin{columns}[c]
-\begin{column}{0.55\textwidth}
-\includegraphics[width=\linewidth]{fig_fuga_subcobertura.pdf}
-\end{column}
-\begin{column}{0.44\textwidth}
+\begin{column}{0.58\textwidth}
+\centering
 \tablar{\linewidth}{tab_confusion}
-\par\vspace{0.6em}
-\tablar{\linewidth}{tab_escenarios}
+\par\vspace{1em}
+\begin{tabular}{@{}c@{\hspace{2.2em}}c@{\hspace{2.2em}}c@{}}
+\cifra{161}{pobres cubiertos} & \cifra{39}{pobres excluidos} & \cifra{54}{no pobres incluidos}\\
+\end{tabular}
+\par\vspace{0.2em}{\scriptsize Por cada 1,000 hogares, con umbral 0.40 (predicciones fuera de muestra).}
+\end{column}
+\begin{column}{0.4\textwidth}
+\footnotesize
+\begin{block}{Dos errores con costos distintos}
+\begin{itemize}\setlength\itemsep{0.2em}
+\item \textbf{Exclusión} (falso negativo): un pobre queda por fuera; \alert{19.4 \%} de los pobres.
+\item \textbf{Inclusión} (falso positivo): un no pobre recibe el beneficio; \alert{25.2 \%} de los beneficiarios.
+\end{itemize}
+\end{block}
+\vspace{0.3em}
+\begin{block}{¿Cuánto cuesta cada error?}
+Si excluir a un pobre cuesta $c$ veces más que incluir a un no pobre, se marca pobre si $P \geq 1/(1+c)$: con $c = 2$, umbral \alert{0.33}.
+\par\vspace{0.2em}
+Bajar de 0.40 a 0.30 cuesta solo 0.007 de F1 y sube el recall a 86.5 \%.
+\end{block}
 \end{column}
 \end{columns}
-\vspace{0.2em}
-{\small Con el F1, \alert{1 de cada 5 pobres queda por fuera} (exclusión) y 1 de cada 4 beneficiarios no es pobre (inclusión). Un programa de transferencias suele preferir cobertura: umbral 0.23.}
+\end{frame}
+
+\begin{frame}{El umbral decide entre errores de exclusión e inclusión}
+\begin{columns}[c]
+\begin{column}{0.57\textwidth}
+\includegraphics[width=\linewidth]{fig_fuga_subcobertura.pdf}
+\par\vspace{0.3em}
+\tablar{\linewidth}{tab_escenarios}
+\end{column}
+\begin{column}{0.38\textwidth}
+\footnotesize
+\begin{itemize}\setlength\itemsep{0.5em}
+\item El F1 pesa igual los dos errores y escoge \alert{0.40}.
+\item \textbf{Cobertura} (umbral 0.23): exclusión de 10 \%, inclusión de 35 \%.
+\item \textbf{Presupuesto fijo} (0.61): inclusión de 15 \%, exclusión de 35 \%.
+\item El umbral se fija según el \alert{costo social} de cada error.
+\end{itemize}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{¿Se puede usar con una encuesta corta?}
 \begin{columns}[c]
-\begin{column}{0.6\textwidth}
+\begin{column}{0.63\textwidth}
 \includegraphics[width=\linewidth]{fig_parsimonia.pdf}
 \end{column}
-\begin{column}{0.38\textwidth}
+\begin{column}{0.36\textwidth}
 \footnotesize
 \textbf{Recomendación}
-\begin{enumerate}\setlength\itemsep{0.2em}
-\item Recortar cuesta: 10 variables dan \alert{0.69}; 40 dan 0.75.
-\item Encuesta corta \alert{verificable} (vivienda, demografía, ocupados, cotizantes en PILA): 0.685.
-\item Empleo y formalidad son las preguntas que más rinden por minuto.
-\item El módulo de ingresos suma 0.09, pero es caro y manipulable con un subsidio en juego.
-\item Fijar el umbral según el costo de cada error.
+\begin{enumerate}\setlength\itemsep{0.3em}
+\item Recortar cuesta: 10 variables dan \alert{0.69}; una encuesta corta \alert{verificable} (vivienda, demografía, ocupados, cotizantes en PILA), 0.685.
+\item El módulo de ingresos suma 0.09, pero es caro, y el arriendo autorreportado es \alert{manipulable} con un subsidio en juego.
+\item \textbf{Dos etapas:} encuesta corta para todos; módulo completo o visita solo cerca del umbral o con $\sigma$ alto.
 \end{enumerate}
 \end{column}
 \end{columns}
@@ -208,7 +269,7 @@ Con las mismas variables, el boosting le gana 0.02 al logit y al RF. El \alert{u
 \end{column}
 \begin{column}{0.32\textwidth}
 \begin{block}{3. Política}
-El F1 pesa igual los errores de exclusión e inclusión: un programa debe \alert{elegir su umbral}. Una encuesta corta y verificable cuesta unos 0.09 de F1.
+El F1 pesa igual los errores de exclusión e inclusión: un programa debe \alert{elegir su umbral}. Una encuesta corta verificable cuesta 0.09 de F1: usarla en dos etapas.
 \end{block}
 \end{column}
 \end{columns}

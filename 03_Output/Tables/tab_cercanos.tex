@@ -1,19 +1,19 @@
 
 \begin{threeparttable}
-\begin{tabular}[t]{lllccc}
+\begin{tabular}[t]{llccc}
 \toprule
-Modelo & Ingreso que usa & Envió & F1 CV & Público & Privado\\
+Modelo & Ingreso que usa & F1 CV & Público & Privado\\
 \midrule
-\textbf{Mejor modelo: clasificador + ingreso A, B y C con sigma} & \textbf{Personas} & \textbf{Cadena} & \textbf{0.7764} & \textbf{0.77} & \textbf{0.77}\\
-LightGBM con restricciones de signo + índice de ingreso & Personas & Flórez & 0.7762 & 0.77 & 0.77\\
-Clasificador + ingreso A y B con sigma & Personas & Cadena & 0.7755 & 0.77 & 0.78\\
-Clasificador + ingreso A & Personas & Cadena & 0.7723 & 0.77 & 0.77\\
+\textbf{Mejor modelo: clasificador + ingreso A, B y C con sigma} & \textbf{Personas} & \textbf{0.7764} & \textbf{0.77} & \textbf{0.77}\\
+LightGBM con restricciones de signo + índice de ingreso & Personas & 0.7762 & 0.77 & 0.77\\
+Clasificador + ingreso A y B con sigma & Personas & 0.7755 & 0.77 & 0.78\\
+Clasificador + ingreso A & Personas & 0.7723 & 0.77 & 0.77\\
 \midrule
-LightGBM con restricciones de signo + XGBoost con brecha & Ninguno & Flórez & 0.7628 & 0.76 & 0.76\\
-Clasificador + XGBoost del ingreso del hogar & Hogar & Cadena & 0.7625 & 0.76 & 0.76\\
-XGBoost + LightGBM del ingreso del hogar & Hogar & Aragón & 0.7612 & 0.76 & 0.76\\
-Logit + Random Forest + XGBoost & Ninguno & Cadena & 0.7609 & 0.76 & 0.76\\
-XGBoost de clasificación & Ninguno & Cadena & 0.7604 & 0.76 & 0.76\\
+LightGBM con restricciones de signo + XGBoost con brecha & Ninguno & 0.7628 & 0.76 & 0.76\\
+Clasificador + XGBoost del ingreso del hogar & Hogar & 0.7625 & 0.76 & 0.76\\
+XGBoost + LightGBM del ingreso del hogar & Hogar & 0.7612 & 0.76 & 0.76\\
+Logit + Random Forest + XGBoost & Ninguno & 0.7609 & 0.76 & 0.76\\
+XGBoost de clasificación & Ninguno & 0.7604 & 0.76 & 0.76\\
 \bottomrule
 \end{tabular}
 \begin{tablenotes}

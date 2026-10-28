@@ -85,16 +85,16 @@ encuesta <- resultados |> filter(str_detect(conjunto, "Encuesta"))
 
 fig <- ggplot(topk, aes(n_variables, F1)) +
   geom_hline(yintercept = mejor_f1, linetype = "dashed", color = pal_algoritmos[["Mejor modelo"]]) +
-  annotate("text", x = 3, y = mejor_f1 + 0.006, hjust = 0, size = 3.4, color = pal_algoritmos[["Mejor modelo"]],
+  annotate("text", x = 3, y = mejor_f1 + 0.007, hjust = 0, size = 4.3, color = pal_algoritmos[["Mejor modelo"]],
            label = sprintf("Mejor modelo (con el módulo de ingresos de cada persona): %.3f", mejor_f1)) +
   geom_line(color = "#0072B2", linewidth = 1) +
   geom_point(color = "#0072B2", size = 3) +
-  geom_text(aes(label = sprintf("%.3f", F1)), vjust = 1.8, size = 3.2, color = "#0072B2") +
+  geom_text(aes(label = sprintf("%.3f", F1)), vjust = 1.8, size = 3.8, color = "#0072B2") +
   geom_point(data = encuesta, aes(color = conjunto), size = 4, shape = 18) +
   geom_text(data = encuesta, aes(label = sprintf("%s: %.3f", conjunto, F1), color = conjunto),
-            hjust = -0.08, size = 3.3, show.legend = FALSE) +
+            hjust = -0.06, size = 4.3, show.legend = FALSE) +
   scale_color_manual(values = c("Encuesta corta verificable" = "#D55E00", "Encuesta corta + arriendo" = "#E69F00")) +
-  scale_x_log10(breaks = c(3, 5, 10, 20, 40, 85)) +
+  scale_x_log10(breaks = c(3, 5, 10, 20, 40, 85), expand = expansion(mult = c(0.05, 0.12))) +
   coord_cartesian(ylim = c(0.59, 0.79)) +
   labs(x = "Número de variables del hogar (escala log)", y = "F1 (validación cruzada)",
        title = "Recortar la encuesta cuesta F1: con 10 variables cae de 0.76 a 0.69",

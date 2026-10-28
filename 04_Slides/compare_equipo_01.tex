@@ -5,7 +5,7 @@
 % ==============================================================================
 \documentclass[aspectratio=169, 10pt]{beamer}
 \input{estilo.tex}
-\subtitle{Algorithm Comparison: el algoritmo importa, la información importa más}
+\subtitle{Algorithm Comparison}
 
 \begin{document}
 
@@ -19,27 +19,27 @@
 
 \begin{frame}{Por qué este problema premia la flexibilidad y la información}
 \begin{columns}[c]
-\begin{column}{0.55\textwidth}
-\includegraphics[width=\linewidth]{fig_educ_formalidad.pdf}
+\begin{column}{0.62\textwidth}
+\includegraphics[width=\linewidth]{fig_ciclo_vida.pdf}
 \end{column}
-\begin{column}{0.43\textwidth}
-\small
+\begin{column}{0.37\textwidth}
+\footnotesize
 \begin{itemize}\setlength\itemsep{0.35em}
-\item \textbf{Interacciones:} la educación protege sobre todo cuando el trabajo es informal. Un logit las necesita a mano; los árboles las encuentran solos.
-\item \textbf{Umbrales:} la pobreza es $\mathbb{1}(S < G)$, un corte sobre el ingreso. Los árboles cortan.
-\item \textbf{Desbalance:} 20 \% pobres. Todos los modelos eligen su \alert{umbral} con la misma regla.
-\item \textbf{Información:} el ingreso está en las \alert{personas}; un modelo a nivel hogar solo ve agregados.
+\item \textbf{Interacciones:} si el jefe cotiza, la pobreza es baja a cualquier edad; si no, llega a 40--55 \% entre los 30 y 40 años. Un logit necesita que le escribamos esa interacción, mientras que un árbol la encuentra solo.
+\item \textbf{Umbrales:} un hogar es pobre cuando su ingreso cae por debajo de la línea, y los árboles funcionan justamente así: parten los datos con cortes.
+\item \textbf{Muchos datos:} con 165 mil hogares y 85 variables, penalizar debería aportar poco.
+\item \textbf{Información:} el ingreso está en las \alert{personas}, así que un modelo a nivel hogar solo ve agregados.
 \end{itemize}
 \end{column}
 \end{columns}
 \end{frame}
 
 \begin{frame}{Un campo nivelado: la diferencia es del algoritmo}
-\begin{columns}[T]
+\begin{columns}[c]
 \begin{column}{0.48\textwidth}
 \begin{block}{Lo mismo para todos los modelos}
 \small
-\begin{itemize}
+\begin{itemize}\setlength\itemsep{0.7em}
 \item \textbf{Base:} 164,960 hogares, 85 predictores (hogar + personas agregadas), sin variables de ingreso.
 \item \textbf{Validación:} los mismos 5 folds estratificados (semilla 2026).
 \item \textbf{Métrica:} F1 fuera de muestra.
@@ -51,7 +51,7 @@
 \begin{column}{0.48\textwidth}
 \begin{block}{Lo que cambia}
 \small
-\begin{itemize}
+\begin{itemize}\setlength\itemsep{0.7em}
 \item \textbf{LPM y Logit:} efectos aditivos (MCO y máxima verosimilitud).
 \item \textbf{Elastic Net:} logit con penalización $L_1 + L_2$.
 \item \textbf{CART:} un árbol podado por $cp$.
@@ -61,8 +61,6 @@
 \end{block}
 \end{column}
 \end{columns}
-\vspace{0.4em}
-{\small El mejor modelo rompe el campo nivelado a propósito: \alert{agrega información} (el ingreso de cada persona). Se compara aparte.}
 \end{frame}
 
 % ------------------------------------------------------------------------------
@@ -72,16 +70,40 @@
 \centering
 \tablar{0.95\linewidth}{tab_algoritmos}
 \par\vspace{0.6em}
-{\small Los dos más cercanos al boosting en Kaggle son \alert{Random Forest} y \alert{Logit} (0.73 público; 0.741 y 0.739 en CV). Naive Bayes no se usó: supone independencia entre variables muy correlacionadas.}
+{\small Los dos más cercanos al boosting en Kaggle son \alert{Random Forest} y \alert{Logit} (0.73 público; 0.741 y 0.739 en CV).}
+\end{frame}
+
+\begin{frame}{Un solo árbol encuentra las variables correctas, pero en escalones}
+\begin{columns}[c]
+\begin{column}{0.71\textwidth}
+\includegraphics[width=\linewidth]{fig_arbol.pdf}
+\end{column}
+\begin{column}{0.28\textwidth}
+\footnotesize
+Los primeros cortes son los de la teoría: \alert{arriendo por persona}, \alert{horas trabajadas}, ocupados que \alert{cotizan} y pensiones.
+\par\vspace{0.8em}
+\renewcommand{\arraystretch}{1.2}
+\scriptsize\begin{tabular}{@{}l>{\raggedright\arraybackslash}p{1.75cm}r@{}}
+\toprule
+& Qué hace & F1 \\
+\midrule
+CART & Un árbol: escalones & 0.704\\
+Logit & Suma efectos & 0.739\\
+RF & Promedia árboles: menos varianza & 0.741\\
+XGBoost & Suma árboles: menos sesgo & 0.760\\
+\bottomrule
+\end{tabular}
+\end{column}
+\end{columns}
 \end{frame}
 
 \begin{frame}{Búsqueda de hiperparámetros: afinar mueve poco el F1}
 \begin{columns}[c]
-\begin{column}{0.64\textwidth}
+\begin{column}{0.7\textwidth}
 \includegraphics[width=\linewidth]{fig_tuning.pdf}
 \end{column}
-\begin{column}{0.34\textwidth}
-\small
+\begin{column}{0.29\textwidth}
+\footnotesize
 \begin{itemize}
 \item \textbf{Elastic Net:} el óptimo es casi sin penalización ($\lambda \approx 0.0003$): regularizar no ayuda con 165 mil hogares.
 \item \textbf{RF:} lo que importa es cuántas \alert{variables candidatas} ve cada corte (13 a 65); árboles profundos.
@@ -121,11 +143,11 @@
 
 \begin{frame}{Dónde fallan todos: cerca de la línea de pobreza}
 \begin{columns}[c]
-\begin{column}{0.66\textwidth}
+\begin{column}{0.73\textwidth}
 \includegraphics[width=\linewidth]{fig_distancia_linea.pdf}
 \end{column}
-\begin{column}{0.32\textwidth}
-\small
+\begin{column}{0.26\textwidth}
+\footnotesize
 \begin{itemize}
 \item Lejos de la línea, todos aciertan más del 90 \%.
 \item Cerca de la línea ($\pm 0.25$ log) aciertan 60--70 \%: ahí está más de la mitad de los errores.
@@ -137,14 +159,14 @@
 
 \begin{frame}{El desbalance: tres estrategias, el umbral gana}
 \centering
-\tablar{0.68\linewidth}{tab_desbalance}
-\par\vspace{0.2em}
+\includegraphics[height=0.47\textheight]{fig_curvas_umbral.pdf}
+\par\vspace{0.3em}
 \begin{columns}[c]
-\begin{column}{0.48\textwidth}
-\centering\includegraphics[height=0.44\textheight]{fig_curvas_umbral.pdf}
+\begin{column}{0.6\textwidth}
+\centering\tablar{\linewidth}{tab_desbalance}
 \end{column}
-\begin{column}{0.48\textwidth}
-\small
+\begin{column}{0.38\textwidth}
+\footnotesize
 \begin{itemize}
 \item Bajar el umbral de 0.5 al óptimo sube el F1 entre 0.01 y 0.02 en todos los algoritmos.
 \item Duplicar pobres (up-sampling) no agregó nada: solo cambió la escala de la probabilidad.
@@ -158,42 +180,25 @@
 \includegraphics[height=0.86\textheight]{fig_escalera.pdf}
 \end{frame}
 
-\begin{frame}{Los modelos más cercanos: los que llegan a 0.77 usan el ingreso de cada persona}
-\centering
-\tablar{0.95\linewidth}{tab_cercanos}
-\par\vspace{0.6em}
-{\small Todos son de boosting. Lo que separa 0.77 de 0.76 no es el algoritmo sino la \alert{información}: sin el ingreso de cada persona, ningún modelo pasa de 0.76.}
-\end{frame}
-
 \begin{frame}{Comparación detallada: el mejor frente a los dos que le siguen}
 \centering
-\tablar{\linewidth}{tab_cercanos_detalle}
-\par\vspace{0.6em}\raggedright
-\begin{columns}[T]
-\begin{column}{0.48\textwidth}
+\vspace{0.4em}
+\makebox[\linewidth]{\resizebox{1.07\linewidth}{!}{\input{../03_Output/Tables/tab_cercanos_detalle.tex}}}
+\par\vspace{1.2em}\raggedright
 \small
-\begin{itemize}
-\item Las diferencias de F1 (0.0009 y 0.0001) son \alert{menores que su error estándar}: los tres están empatados.
-\item Clasifican distinto a menos del \alert{1 \%} de los hogares; sus probabilidades tienen correlación de 0.999.
+\begin{itemize}\setlength\itemsep{0.6em}
+\item \textbf{Empatados:} las diferencias de F1 (0.0009 y 0.0001) son \alert{menores que su error estándar}, sus probabilidades tienen correlación de 0.999 y clasifican distinto a menos del 1 \% de los hogares. El 0.78 privado de la versión A + B es ruido.
+\item \textbf{Lección:} el ensamble con LightGBM monótono solo cambia el clasificador (\alert{14 restricciones de signo}) y empata: con el índice de ingreso adentro, \alert{el algoritmo del clasificador ya no importa}.
 \end{itemize}
-\end{column}
-\begin{column}{0.48\textwidth}
-\small
-\begin{itemize}
-\item El de Flórez cambia el balance: \alert{más precisión} (0.754) y menos recall (0.800), con el mismo F1.
-\item El 0.78 del privado de la versión A + B es ruido del mismo tamaño: elegimos por validación cruzada.
-\end{itemize}
-\end{column}
-\end{columns}
 \end{frame}
 
 \begin{frame}{La validación cruzada predijo a Kaggle}
 \begin{columns}[c]
-\begin{column}{0.62\textwidth}
+\begin{column}{0.7\textwidth}
 \includegraphics[width=\linewidth]{fig_cv_kaggle.pdf}
 \end{column}
-\begin{column}{0.36\textwidth}
-\small
+\begin{column}{0.29\textwidth}
+\footnotesize
 \begin{itemize}
 \item Correlación CV--privado: \alert{0.99} en 21 envíos.
 \item Decidimos con el CV, no con el público (ruido de $\pm 0.006$ con 13 mil hogares).
@@ -207,16 +212,20 @@
 \section{Conclusión}
 
 \begin{frame}{¿Qué modelo le recomendaríamos a una entidad del gobierno?}
-\vspace{0.6em}
-\centering
-\tablar{\linewidth}{tab_tradeoffs}
-\par\vspace{1.4em}
+\vspace{0.2em}
+\makebox[\linewidth]{\resizebox{1.06\linewidth}{!}{\input{../03_Output/Tables/tab_tradeoffs.tex}}}
+\par\vspace{0.9em}
 \begin{columns}[T]
-\begin{column}{0.48\textwidth}
+\begin{column}{0.42\textwidth}
+\footnotesize
 \textbf{Complejidad frente a desempeño.} De logit a boosting: +0.02 sin perder variables. Del boosting al mejor modelo: +0.016, pero con nueve modelos de árboles y el módulo de ingresos.
+\par\vspace{0.4em}
+\textbf{Incentivos.} Si el puntaje decide el subsidio, los hogares aprenden a responder para obtenerlo.
 \end{column}
-\begin{column}{0.48\textwidth}
-\textbf{Recomendación.} Para focalizar: \alert{boosting a nivel hogar} con preguntas verificables y un umbral elegido por el costo de los errores. El mejor de Kaggle no es necesariamente el mejor instrumento.
+\begin{column}{0.56\textwidth}
+\begin{exampleblock}{Recomendación}
+\small Para focalizar: \alert{boosting a nivel hogar} con preguntas verificables, restricciones de signo para que sea auditable y un umbral elegido por el costo de los errores. El mejor de Kaggle no es necesariamente el mejor instrumento.
+\end{exampleblock}
 \end{column}
 \end{columns}
 \end{frame}

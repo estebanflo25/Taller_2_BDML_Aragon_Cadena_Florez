@@ -122,7 +122,7 @@ izq <- imp_clas |>
   geom_col(width = 0.7) +
   geom_text(aes(label = sprintf("%.0f %%", importancia)), hjust = -0.15, size = 3.2) +
   scale_fill_manual(values = pal_grupos, drop = TRUE) +
-  scale_x_continuous(expand = expansion(mult = c(0, 0.2))) +
+  scale_x_continuous(expand = expansion(mult = c(0, 0.3))) +
   labs(x = "% de la ganancia del modelo", y = NULL, title = "Clasificador del hogar") +
   theme_taller(10) + theme(panel.grid.major.y = element_blank(), legend.position = "bottom") +
   guides(fill = guide_legend(nrow = 2))
@@ -142,7 +142,7 @@ der <- ggplot(principal, aes(importancia, fuente)) +
        title = "Ingreso por fuentes: variable principal") +
   theme_taller(10) + theme(panel.grid.major.y = element_blank())
 
-fig3 <- izq + der + plot_layout(widths = c(1, 1.1)) +
+fig3 <- izq + plot_spacer() + der + plot_layout(widths = c(1, 0.12, 1.1)) +
   plot_annotation(title = "Qué variables usa el mejor modelo",
                   subtitle = "Entre paréntesis, el peso de cada fuente en el ingreso total de las personas",
                   theme = theme_taller(12))
